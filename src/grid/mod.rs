@@ -39,26 +39,39 @@ pub struct Grid {
 impl fmt::Display for Grid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 
+        // Create a String which will separate groups of rows in the grid.
         let dashes = String::from_utf8(vec![b'-'; 2 * SMALL_SIZE - 1]).unwrap();
         let row_sep = (0..SMALL_SIZE).map(|_| "+".to_string() + &dashes).collect::<String>() + "+";
 
         write!(f, "{}", row_sep);
 
+        // Iterate over every block in the grid.
         for block_idx_r in 0..SMALL_SIZE {
             for row_idx in block_idx_r * SMALL_SIZE..(block_idx_r + 1) * SMALL_SIZE {
+
+                // Start the line off with some border.
                 write!(f, "\n|");
                 for block_idx_c in 0..SMALL_SIZE {
                     for col_idx in block_idx_c * SMALL_SIZE..(block_idx_c + 1) * SMALL_SIZE {
+
+                        // Write either the number in the cell, or a dot if there isn't one.
                         let val = self.cells[row_idx][col_idx].get_value();
-                        if col_idx == (block_idx_c + 1) * SMALL_SIZE - 1 {
-                            write!(f, "{}", if val == None { 0 } else { val.unwrap() });
+                        if val == None {
+                            write!(f, ".");
                         } else {
-                            write!(f, "{} ", if val == None { 0 } else { val.unwrap() });
+                            write!(f, "{}", val.unwrap());
+                        }
+
+                        // If another number comes next, add some space between them.
+                        if col_idx != (block_idx_c + 1) * SMALL_SIZE - 1 {
+                            write!(f, " ");
                         }
                     }
+                    // Put in the next piece of border.
                     write!(f, "|");
                 }
             }
+            // Add the next row separator.
             write!(f, "\n{}", row_sep);
         }
 
