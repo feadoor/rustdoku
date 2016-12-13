@@ -1,0 +1,7 @@
+[package]
+name = "rustdoku"
+version = "0.1.0"
+authors = ["Sam Cappleman-Lynes <sam.capplemanlynes@gmail.com>"]
+
+[dependencies]
+bit-set = "0.4.0"
