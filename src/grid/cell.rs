@@ -2,7 +2,7 @@
 
 use bit_set::BitSet;
 
-use grid::CellIdx;
+use grid::{CellIdx, SMALL_SIZE};
 
 /// A single cell within a Sudoku grid.
 #[derive(Default)]
@@ -61,5 +61,20 @@ impl Cell {
     /// Get the index of this cell within its grid.
     pub fn idx(&self) -> CellIdx {
         self.idx
+    }
+
+    /// A number identifying the row this cell belongs to.
+    pub fn row(&self) -> usize {
+        self.idx.row
+    }
+
+    /// A number identifying the column this cell belongs to.
+    pub fn column(&self) -> usize {
+        self.idx.col
+    }
+
+    /// A pair of numbers identifying the block this cell belongs to.
+    pub fn block(&self) -> (usize, usize) {
+        (self.idx.row / SMALL_SIZE, self.idx.col / SMALL_SIZE)
     }
 }

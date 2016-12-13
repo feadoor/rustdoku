@@ -9,15 +9,15 @@ use grid::Grid;
 use strategies::solve;
 
 fn main() {
-    let mut grid = Grid::from_string("082050000\
-                                      700009060\
-                                      000040000\
-                                      009306007\
-                                      200000003\
-                                      600205800\
-                                      000070000\
-                                      010400008\
-                                      000030410");
+    let mut grid = Grid::from_string("080020006\
+                                      000806000\
+                                      300000901\
+                                      409000000\
+                                      050307060\
+                                      000000805\
+                                      205000009\
+                                      000403000\
+                                      100070030");
 
     println!("Before solving:\n\n{}", grid);
     solve(&mut grid);
@@ -46,9 +46,7 @@ mod tests {
         let reader = BufReader::new(file);
         for line_it in reader.lines() {
             let mut grid = Grid::from_string(&line_it.unwrap());
-            println!("Before solving:\n\n{}", grid);
             solve(&mut grid);
-            println!("\nAfter solving:\n\n{}", grid);
             check_grid(&grid);
         }
     }

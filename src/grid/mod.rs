@@ -14,7 +14,7 @@ pub const SMALL_SIZE: usize = 3;
 pub const LARGE_SIZE: usize = SMALL_SIZE * SMALL_SIZE;
 
 /// A type that lets us refer to coordinates in the grid.
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Debug)]
 pub struct CellIdx {
     row: usize,
     col: usize
@@ -42,36 +42,36 @@ impl fmt::Display for Grid {
         let dashes = String::from_utf8(vec![b'-'; 2 * SMALL_SIZE - 1]).unwrap();
         let row_sep = (0..SMALL_SIZE).map(|_| "+".to_string() + &dashes).collect::<String>() + "+";
 
-        write!(f, "{}", row_sep);
+        try!(write!(f, "{}", row_sep));
 
         // Iterate over every block in the grid.
         for block_idx_r in 0..SMALL_SIZE {
             for row_idx in block_idx_r * SMALL_SIZE..(block_idx_r + 1) * SMALL_SIZE {
 
                 // Start the line off with some border.
-                write!(f, "\n|");
+                try!(write!(f, "\n|"));
                 for block_idx_c in 0..SMALL_SIZE {
                     for col_idx in block_idx_c * SMALL_SIZE..(block_idx_c + 1) * SMALL_SIZE {
 
                         // Write either the number in the cell, or a dot if there isn't one.
                         let val = self.cells[row_idx][col_idx].value();
                         if val == None {
-                            write!(f, ".");
+                            try!(write!(f, "."));
                         } else {
-                            write!(f, "{}", val.unwrap());
+                            try!(write!(f, "{}", val.unwrap()));
                         }
 
                         // If another number comes next, add some space between them.
                         if col_idx != (block_idx_c + 1) * SMALL_SIZE - 1 {
-                            write!(f, " ");
+                            try!(write!(f, " "));
                         }
                     }
                     // Put in the next piece of border.
-                    write!(f, "|");
+                    try!(write!(f, "|"));
                 }
             }
             // Add the next row separator.
-            write!(f, "\n{}", row_sep);
+            try!(write!(f, "\n{}", row_sep));
         }
 
         Ok(())

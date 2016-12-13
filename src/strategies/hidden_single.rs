@@ -1,4 +1,4 @@
-//! A definition of the naked single strategy.
+//! A definition of the hidden single strategy.
 
 use grid::{Grid, LARGE_SIZE};
 use strategies::Deduction;

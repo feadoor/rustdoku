@@ -3,10 +3,13 @@
 mod full_house;
 mod naked_single;
 mod hidden_single;
+mod pointing;
+mod claiming;
 
 use grid::{CellIdx, Grid};
 
 /// The different types of deduction that can be made on a grid.
+#[derive(Debug)]
 pub enum Deduction {
     /// Indicates that the given value can be placed in the cell at the given index.
     Placement(CellIdx, usize),
@@ -17,20 +20,19 @@ pub enum Deduction {
 /// Find the simplest deduction that can be applied to the grid.
 fn find_deduction(grid: &Grid) -> Option<Vec<Deduction>> {
 
-    // Full House
-    if let Some(deductions) = full_house::find(grid) {
-        return Some(deductions);
+    macro_rules! search {
+        ($e: ident, $x: ident) => {
+            if let Some(deductions) = $e::find($x) {
+                return Some(deductions);
+            }
+        }
     }
 
-    // Naked Single
-    if let Some(deductions) = naked_single::find(grid) {
-        return Some(deductions);
-    }
-
-    // Hidden Single
-    if let Some(deductions) = hidden_single::find(grid) {
-        return Some(deductions);
-    }
+    search!(full_house, grid);
+    search!(hidden_single, grid);
+    search!(naked_single, grid);
+    search!(pointing, grid);
+    search!(claiming, grid);
 
     None
 }
