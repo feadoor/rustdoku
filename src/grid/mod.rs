@@ -6,8 +6,7 @@ mod region;
 use std::fmt;
 
 use self::cell::Cell;
-use self::region::{Row, Column, Block, Cells};
-use strategies::{Deduction, find_deduction};
+use self::region::Region;
 
 /// The size of the internal regions in a Sudoku grid.
 pub const SMALL_SIZE: usize = 3;
@@ -55,7 +54,7 @@ impl fmt::Display for Grid {
                     for col_idx in block_idx_c * SMALL_SIZE..(block_idx_c + 1) * SMALL_SIZE {
 
                         // Write either the number in the cell, or a dot if there isn't one.
-                        let val = self.cells[row_idx][col_idx].get_value();
+                        let val = self.cells[row_idx][col_idx].value();
                         if val == None {
                             write!(f, ".");
                         } else {
@@ -81,8 +80,9 @@ impl fmt::Display for Grid {
 
 impl Grid {
 
-    /// Create a new grid with the given cells filled in.
-    pub fn new(givens: [[usize; LARGE_SIZE]; LARGE_SIZE]) -> Grid {
+
+    /// Create a new empty grid.
+    pub fn empty() -> Grid {
         let mut cells: [[Cell; LARGE_SIZE]; LARGE_SIZE] = Default::default();
         for row_idx in 0..LARGE_SIZE {
             for col_idx in 0..LARGE_SIZE {
@@ -91,7 +91,14 @@ impl Grid {
             }
         }
 
-        let mut grid = Grid { cells: cells };
+        Grid { cells: cells }
+    }
+
+    /// Create a new grid with the given cells filled in.
+    pub fn from_givens(givens: [[usize; LARGE_SIZE]; LARGE_SIZE]) -> Grid {
+
+        // Start with an empty grid and fill in all the givens.
+        let mut grid = Grid::empty();
         for row_idx in 0..LARGE_SIZE {
             for col_idx in 0..LARGE_SIZE {
                 if givens[row_idx][col_idx] != 0 {
@@ -103,8 +110,23 @@ impl Grid {
         grid
     }
 
+    /// Create a new grid from a string describing it.
+    pub fn from_string(givens: &str) -> Grid {
+
+        // Start with an empty grid and fill in all the givens.
+        let mut grid = Grid::empty();
+        for (idx, digit) in givens.as_bytes().iter().enumerate() {
+            let val = digit - b'0';
+            if val > 0 && val <= LARGE_SIZE as u8 {
+                grid.place_value(CellIdx::new(idx / LARGE_SIZE, idx % LARGE_SIZE), val as usize);
+            }
+        }
+
+        grid
+    }
+
     /// Get a reference to the cell at the given index.
-    pub fn get_cell(&self, cell_idx: CellIdx) -> &Cell {
+    pub fn cell(&self, cell_idx: CellIdx) -> &Cell {
         &self.cells[cell_idx.row][cell_idx.col]
     }
 
@@ -118,14 +140,14 @@ impl Grid {
         // Remove it from all neighbouring cells.
         let mut cells_to_eliminate = Vec::new();
 
-        for cell in self.get_row(cell_idx) {
-            cells_to_eliminate.push(cell.get_idx());
+        for cell in self.row_from_cell(cell_idx).cells() {
+            cells_to_eliminate.push(cell.idx());
         }
-        for cell in self.get_column(cell_idx) {
-            cells_to_eliminate.push(cell.get_idx());
+        for cell in self.column_from_cell(cell_idx).cells() {
+            cells_to_eliminate.push(cell.idx());
         }
-        for cell in self.get_block(cell_idx) {
-            cells_to_eliminate.push(cell.get_idx());
+        for cell in self.block_from_cell(cell_idx).cells() {
+            cells_to_eliminate.push(cell.idx());
         }
 
         for idx in cells_to_eliminate {
@@ -138,64 +160,70 @@ impl Grid {
         self.cells[cell_idx.row][cell_idx.col].remove_candidate(val);
     }
 
+    /// Get the row having the given index.
+    fn row(&self, row_idx: usize) -> Region {
+        let cells = (0..LARGE_SIZE).map(|col_idx| &self.cells[row_idx][col_idx]).collect();
+        Region::new(cells)
+    }
+
+    /// Get the column having the given index.
+    fn column(&self, col_idx: usize) -> Region {
+        let cells = (0..LARGE_SIZE).map(|row_idx| &self.cells[row_idx][col_idx]).collect();
+        Region::new(cells)
+    }
+
+    /// Get the block having the given index.
+    fn block(&self, row_idx: usize, col_idx: usize) -> Region {
+        let base_row = SMALL_SIZE * row_idx;
+        let base_col = SMALL_SIZE * col_idx;
+        let cells = (0..LARGE_SIZE)
+            .map(|idx| &self.cells[base_row + idx / SMALL_SIZE][base_col + idx % SMALL_SIZE])
+            .collect();
+
+        Region::new(cells)
+    }
+
     /// Get the row that the given cell is a part of.
-    pub fn get_row(&self, cell_idx: CellIdx) -> Row {
-        Row::new(&self, cell_idx.row)
+    pub fn row_from_cell(&self, cell_idx: CellIdx) -> Region {
+        self.row(cell_idx.row)
     }
 
     /// Get the column that the given cell is a part of.
-    pub fn get_column(&self, cell_idx: CellIdx) -> Column {
-        Column::new(&self, cell_idx.col)
+    pub fn column_from_cell(&self, cell_idx: CellIdx) -> Region {
+        self.column(cell_idx.col)
     }
 
     /// Get the block that the given cell is a part of.
-    pub fn get_block(&self, cell_idx: CellIdx) -> Block {
-        Block::new(&self, cell_idx.row / 3, cell_idx.col / 3)
+    pub fn block_from_cell(&self, cell_idx: CellIdx) -> Region {
+        self.block(cell_idx.row / SMALL_SIZE, cell_idx.col / SMALL_SIZE)
     }
 
     /// All rows of the grid.
-    pub fn rows(&self) -> Vec<Row> {
-        (0..LARGE_SIZE).map(|x| Row::new(&self, x)).collect()
+    pub fn rows(&self) -> Vec<Region> {
+        (0..LARGE_SIZE).map(|x| self.row(x)).collect()
     }
 
     /// All columns of the grid.
-    pub fn columns(&self) -> Vec<Column> {
-        (0..LARGE_SIZE).map(|x| Column::new(&self, x)).collect()
+    pub fn columns(&self) -> Vec<Region> {
+        (0..LARGE_SIZE).map(|x| self.column(x)).collect()
     }
 
     /// All blocks of the grid.
-    pub fn blocks(&self) -> Vec<Block> {
-        (0..LARGE_SIZE).map(|x| Block::new(&self, x / 3, x % 3)).collect()
+    pub fn blocks(&self) -> Vec<Region> {
+        (0..LARGE_SIZE).map(|x| self.block(x / SMALL_SIZE, x % SMALL_SIZE)).collect()
     }
 
-    /// An iterator over all the cells of the grid.
-    pub fn cells(&self) -> Cells {
-        Cells::new(&self)
+    /// All regions of the grid.
+    pub fn regions(&self) -> Vec<Region> {
+        let mut acc = Vec::new();
+        acc.extend(self.rows());
+        acc.extend(self.columns());
+        acc.extend(self.blocks());
+        acc
     }
 
-    /// Decide if the grid is solved or not.
-    pub fn is_solved(&self) -> bool {
-        self.cells().all(|x| !x.is_empty())
-    }
-
-    /// Apply the results of a deduction to the grid.
-    pub fn apply_deduction(&mut self, deduction: Deduction) {
-        match deduction {
-            Deduction::Placement(cell_idx, val) => self.place_value(cell_idx, val),
-            Deduction::Elimination(cell_idx, val) => self.eliminate_value(cell_idx, val),
-        }
-    }
-
-    /// Solve the grid using the available strategies.
-    pub fn solve(&mut self) {
-        while !self.is_solved() {
-            if let Some(deductions) = find_deduction(&self) {
-                for deduction in deductions {
-                    self.apply_deduction(deduction);
-                }
-            } else {
-                break;
-            }
-        }
+    /// All the cells of the grid.
+    pub fn cells(&self) -> Vec<&Cell> {
+        (0..LARGE_SIZE).flat_map(|x| &self.cells[x]).collect()
     }
 }

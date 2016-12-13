@@ -28,13 +28,14 @@ impl Cell {
     }
 
     /// Get the value currently held in this `Cell`.
-    pub fn get_value(&self) -> Option<usize> {
+    pub fn value(&self) -> Option<usize> {
         self.value
     }
 
     /// Set the value currently held in this `Cell`.
     pub fn set_value(&mut self, val: usize) {
         self.value = Some(val);
+        self.candidates.clear();
     }
 
     /// Determine whether this `Cell` is empty or not.
@@ -43,7 +44,7 @@ impl Cell {
     }
 
     /// Get the candidates which are allowed in this `Cell`.
-    pub fn get_candidates(&self) -> &BitSet {
+    pub fn candidates(&self) -> &BitSet {
         &self.candidates
     }
 
@@ -58,7 +59,7 @@ impl Cell {
     }
 
     /// Get the index of this cell within its grid.
-    pub fn get_idx(&self) -> CellIdx {
+    pub fn idx(&self) -> CellIdx {
         self.idx
     }
 }
