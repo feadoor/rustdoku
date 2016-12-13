@@ -3,9 +3,11 @@
 mod cell;
 mod region;
 
+use std::fmt;
+
 use self::cell::Cell;
 use self::region::{Row, Column, Block, Cells};
-use strategies::Deduction;
+use strategies::{Deduction, find_deduction};
 
 /// The size of the internal regions in a Sudoku grid.
 pub const SMALL_SIZE: usize = 3;
@@ -32,6 +34,36 @@ impl CellIdx {
 /// A Sudoku grid.
 pub struct Grid {
     cells: [[Cell; LARGE_SIZE]; LARGE_SIZE],
+}
+
+impl fmt::Display for Grid {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+
+        let dashes = String::from_utf8(vec![b'-'; 2 * SMALL_SIZE - 1]).unwrap();
+        let row_sep = (0..SMALL_SIZE).map(|_| "+".to_string() + &dashes).collect::<String>() + "+";
+
+        write!(f, "{}", row_sep);
+
+        for block_idx_r in 0..SMALL_SIZE {
+            for row_idx in block_idx_r * SMALL_SIZE..(block_idx_r + 1) * SMALL_SIZE {
+                write!(f, "\n|");
+                for block_idx_c in 0..SMALL_SIZE {
+                    for col_idx in block_idx_c * SMALL_SIZE..(block_idx_c + 1) * SMALL_SIZE {
+                        let val = self.cells[row_idx][col_idx].get_value();
+                        if col_idx == (block_idx_c + 1) * SMALL_SIZE - 1 {
+                            write!(f, "{}", if val == None { 0 } else { val.unwrap() });
+                        } else {
+                            write!(f, "{} ", if val == None { 0 } else { val.unwrap() });
+                        }
+                    }
+                    write!(f, "|");
+                }
+            }
+            write!(f, "\n{}", row_sep);
+        }
+
+        Ok(())
+    }
 }
 
 impl Grid {
@@ -138,6 +170,19 @@ impl Grid {
         match deduction {
             Deduction::Placement(cell_idx, val) => self.place_value(cell_idx, val),
             Deduction::Elimination(cell_idx, val) => self.eliminate_value(cell_idx, val),
+        }
+    }
+
+    /// Solve the grid using the available strategies.
+    pub fn solve(&mut self) {
+        while !self.is_solved() {
+            if let Some(deductions) = find_deduction(&self) {
+                for deduction in deductions {
+                    self.apply_deduction(deduction);
+                }
+            } else {
+                break;
+            }
         }
     }
 }
