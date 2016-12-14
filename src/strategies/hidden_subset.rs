@@ -21,9 +21,9 @@ pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
         }
     }
 
-    find_subsets!(2, grid);
-    find_subsets!(3, grid);
-    find_subsets!(4, grid);
+    for degree in 2..LARGE_SIZE / 2 + 1 {
+        find_subsets!(degree, grid);
+    }
 
     None
 }

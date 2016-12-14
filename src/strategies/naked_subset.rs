@@ -3,7 +3,7 @@
 use bit_set::BitSet;
 use itertools::Itertools;
 
-use grid::Grid;
+use grid::{Grid, LARGE_SIZE};
 use grid::cell::Cell;
 use strategies::Deduction;
 
@@ -22,9 +22,9 @@ pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
         }
     }
 
-    find_subsets!(2, grid);
-    find_subsets!(3, grid);
-    find_subsets!(4, grid);
+    for degree in 2..LARGE_SIZE / 2 + 1 {
+        find_subsets!(degree, grid);
+    }
 
     None
 }
