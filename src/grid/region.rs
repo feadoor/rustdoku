@@ -8,7 +8,6 @@ pub struct Region<'a> {
 }
 
 impl<'a> Region<'a> {
-
     /// Create a new region from the given cells.
     pub fn new(cells: Vec<&Cell>) -> Region {
         Region { cells: cells }

@@ -5,7 +5,8 @@ use strategies::Deduction;
 
 /// Return, if one exists, a deduction based on a naked single.
 ///
-/// A naked single is when a given cell has only one candidate that it can contain.
+/// A naked single is when a given cell has only one candidate that it can contain. Then that value
+/// can be placed in the cell.
 pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
 
     // Scan each cell and check if it is a naked single.

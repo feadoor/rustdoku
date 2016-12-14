@@ -5,7 +5,8 @@ use strategies::Deduction;
 
 /// Return, if one exists, a deduction based on a full house.
 ///
-/// A full house is when a given region has only one empty cell.
+/// A full house is when a given region has only one empty cell. Then that cell can be filled in
+/// with the last remaining value.
 pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
 
     // Scan each region and check if it has only one empty cell.

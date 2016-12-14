@@ -5,11 +5,12 @@ mod naked_single;
 mod hidden_single;
 mod pointing;
 mod claiming;
+mod naked_subset;
+mod hidden_subset;
 
 use grid::{CellIdx, Grid};
 
 /// The different types of deduction that can be made on a grid.
-#[derive(Debug)]
 pub enum Deduction {
     /// Indicates that the given value can be placed in the cell at the given index.
     Placement(CellIdx, usize),
@@ -22,8 +23,9 @@ fn find_deduction(grid: &Grid) -> Option<Vec<Deduction>> {
 
     macro_rules! search {
         ($e: ident, $x: ident) => {
-            if let Some(deductions) = $e::find($x) {
-                return Some(deductions);
+            let deductions = $e::find($x);
+            if deductions.is_some() {
+                return deductions;
             }
         }
     }
@@ -33,6 +35,8 @@ fn find_deduction(grid: &Grid) -> Option<Vec<Deduction>> {
     search!(naked_single, grid);
     search!(pointing, grid);
     search!(claiming, grid);
+    search!(naked_subset, grid);
+    search!(hidden_subset, grid);
 
     None
 }

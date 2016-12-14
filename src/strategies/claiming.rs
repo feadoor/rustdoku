@@ -6,7 +6,7 @@ use strategies::Deduction;
 /// Return, if one exists, a deduction based on claiming.
 ///
 /// Pointing occurs when all occurrences of a given value within a row or column occur within a
-/// single block.
+/// single block. Then that value can be eliminated from other positions within the block.
 pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
 
     // Scan each row / column, and for each value, check if the positions are limited to a

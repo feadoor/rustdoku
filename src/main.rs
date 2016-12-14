@@ -1,6 +1,7 @@
 //! A pure-logic Sudoku solver.
 
 extern crate bit_set;
+extern crate itertools;
 
 mod grid;
 mod strategies;
@@ -9,15 +10,15 @@ use grid::Grid;
 use strategies::solve;
 
 fn main() {
-    let mut grid = Grid::from_string("080020006\
-                                      000806000\
-                                      300000901\
-                                      409000000\
-                                      050307060\
-                                      000000805\
-                                      205000009\
-                                      000403000\
-                                      100070030");
+    let mut grid = Grid::from_string("000005004\
+                                      000000910\
+                                      000900038\
+                                      000304507\
+                                      070080060\
+                                      803502000\
+                                      490003000\
+                                      025000000\
+                                      600700000");
 
     println!("Before solving:\n\n{}", grid);
     solve(&mut grid);

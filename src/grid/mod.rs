@@ -1,7 +1,7 @@
 //! A structure representing the state of a Sudoku grid.
 
-mod cell;
-mod region;
+pub mod cell;
+pub mod region;
 
 use std::fmt;
 
@@ -14,10 +14,10 @@ pub const SMALL_SIZE: usize = 3;
 pub const LARGE_SIZE: usize = SMALL_SIZE * SMALL_SIZE;
 
 /// A type that lets us refer to coordinates in the grid.
-#[derive(Clone, Copy, Default, Debug)]
+#[derive(Clone, Copy, Default, Eq, PartialEq)]
 pub struct CellIdx {
     row: usize,
-    col: usize
+    col: usize,
 }
 
 impl CellIdx {
@@ -55,7 +55,7 @@ impl fmt::Display for Grid {
 
                         // Write either the number in the cell, or a dot if there isn't one.
                         let val = self.cells[row_idx][col_idx].value();
-                        if val == None {
+                        if val.is_none() {
                             try!(write!(f, "."));
                         } else {
                             try!(write!(f, "{}", val.unwrap()));
@@ -79,8 +79,6 @@ impl fmt::Display for Grid {
 }
 
 impl Grid {
-
-
     /// Create a new empty grid.
     pub fn empty() -> Grid {
         let mut cells: [[Cell; LARGE_SIZE]; LARGE_SIZE] = Default::default();
@@ -94,22 +92,6 @@ impl Grid {
         Grid { cells: cells }
     }
 
-    /// Create a new grid with the given cells filled in.
-    pub fn from_givens(givens: [[usize; LARGE_SIZE]; LARGE_SIZE]) -> Grid {
-
-        // Start with an empty grid and fill in all the givens.
-        let mut grid = Grid::empty();
-        for row_idx in 0..LARGE_SIZE {
-            for col_idx in 0..LARGE_SIZE {
-                if givens[row_idx][col_idx] != 0 {
-                    grid.place_value(CellIdx::new(row_idx, col_idx), givens[row_idx][col_idx]);
-                }
-            }
-        }
-
-        grid
-    }
-
     /// Create a new grid from a string describing it.
     pub fn from_string(givens: &str) -> Grid {
 
@@ -118,16 +100,12 @@ impl Grid {
         for (idx, digit) in givens.as_bytes().iter().enumerate() {
             let val = digit - b'0';
             if val > 0 && val <= LARGE_SIZE as u8 {
-                grid.place_value(CellIdx::new(idx / LARGE_SIZE, idx % LARGE_SIZE), val as usize);
+                grid.place_value(CellIdx::new(idx / LARGE_SIZE, idx % LARGE_SIZE),
+                                 val as usize);
             }
         }
 
         grid
-    }
-
-    /// Get a reference to the cell at the given index.
-    pub fn cell(&self, cell_idx: CellIdx) -> &Cell {
-        &self.cells[cell_idx.row][cell_idx.col]
     }
 
     /// Place a value in the cell at the given index, propagating to its neighbours to remove the

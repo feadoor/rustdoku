@@ -15,13 +15,20 @@ pub struct Cell {
     idx: CellIdx,
 }
 
-impl Cell {
+impl PartialEq for Cell {
+    fn eq(&self, other: &Cell) -> bool {
+        self.idx() == other.idx()
+    }
+}
 
+impl Eq for Cell {}
+
+impl Cell {
     /// Create a new `Cell` at the given index with no value, and with all candidates possible.
     pub fn new(idx: CellIdx) -> Cell {
         let candidates = BitSet::from_bytes(&[0b01111111, 0b11000000]);
         Cell {
-            value : None,
+            value: None,
             candidates: candidates,
             idx: CellIdx::new(idx.row, idx.col),
         }
@@ -40,7 +47,7 @@ impl Cell {
 
     /// Determine whether this `Cell` is empty or not.
     pub fn is_empty(&self) -> bool {
-        self.value == None
+        self.value.is_none()
     }
 
     /// Get the candidates which are allowed in this `Cell`.
