@@ -5,11 +5,11 @@ Logical Sudoku solver in Rust.
 a repertoire of logical techniques and patterns that can aid human solvers of Sudoku puzzles.
 
 **To repeat** - I don't care about your puzzle that needs you to hold 10 assumptions in your head at once. I am not interested in
-techniques that require hypotheticals of the form "What happens if a 2 goes here...". I am interested in creating an arsenal of patterns
-that can solve even very difficult Sudoku puzzles without resorting to branching.
+techniques that require hypotheticals of the form "What happens if a 2 goes here...". I am interested in creating a catalogue of 
+patterns that can solve even very difficult Sudoku puzzles without resorting to branching or trial-and-error.
 
 The proofs of the patterns themselves *are* allowed to rely on hypotheticals, such as for the classic XYZ-Wing. But the criterion for me
-considering it valid is that, once the pattern has been defined, it can be spotted and applied without having to repeat the proof.
+to consider it valid is that, once the pattern has been defined, it can be spotted and applied without having to repeat the proof.
 
 # Patterns included so far
 
