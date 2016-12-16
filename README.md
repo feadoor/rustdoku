@@ -1,22 +1,22 @@
 # rustdoku
 Logical Sudoku solver in Rust.
 
-**NOTE**: I am not in the slightest bit interested in solving *every* Sudoku puzzle. What I am interested in doing here is in building up
-a repertoire of logical techniques and patterns that can aid human solvers of Sudoku puzzles.
+**NOTE**: I am not in the slightest bit interested in solving *every* Sudoku puzzle. What I am interested in doing here is in building
+up a repertoire of logical techniques and patterns that are capable of solving the vast majority of even very difficult puzzles.
 
-**To repeat** - I don't care about your puzzle that needs you to hold 10 assumptions in your head at once. I am not interested in
-techniques that require hypotheticals of the form "What happens if a 2 goes here...". I am interested in creating a catalogue of 
-patterns that can solve even very difficult Sudoku puzzles without resorting to branching or trial-and-error.
+Many of these techniques will be infeasible for human solvers, but human solving is not the goal here. My aim is to develop a small set
+of heuristics that can be used to find logical solutions to Sudoku puzzles which meet two goals:
 
-The proofs of the patterns themselves *are* allowed to rely on hypotheticals, such as for the classic XYZ-Wing. But the criterion for me
-to consider it valid is that, once the pattern has been defined, it can be spotted and applied without having to repeat the proof.
+* The solve should be linear - it can be followed step-by-step without having to remember previous steps.
+
+* The solve must be verifiable by a human with sufficient understanding of the techniques involved.
 
 # Patterns included so far
 
 ## Full house
 
-This occurs when only one cell in a row, column or block remains empty. Although this is subsumed by both other types of single below, it's 
-much easier to spot than the general case.
+This occurs when only one cell in a row, column or block remains empty. Although this is subsumed by both other types of single below,
+it's much easier to spot than the general case.
 
 ![alt tag](images/fullhouse.PNG)
 
