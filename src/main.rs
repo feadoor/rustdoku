@@ -10,15 +10,16 @@ use grid::Grid;
 use strategies::solve;
 
 fn main() {
-    let mut grid = Grid::from_string("000005004\
-                                      000000910\
-                                      000900038\
-                                      000304507\
-                                      070080060\
-                                      803502000\
-                                      490003000\
-                                      025000000\
-                                      600700000");
+    let mut grid = Grid::from_str("000005004\
+                                   000000910\
+                                   000900038\
+                                   000304507\
+                                   070080060\
+                                   803502000\
+                                   490003000\
+                                   025000000\
+                                   600700000")
+      .unwrap();
 
     println!("Before solving:\n\n{}", grid);
     solve(&mut grid);

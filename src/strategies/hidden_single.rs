@@ -1,6 +1,6 @@
 //! A definition of the hidden single strategy.
 
-use grid::{Grid, LARGE_SIZE};
+use grid::Grid;
 use strategies::Deduction;
 
 /// Return, if one exists, a deduction based on a hidden single.
@@ -10,12 +10,12 @@ use strategies::Deduction;
 pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
 
     // Scan each region, and check if any value has only one position.
-    for region in grid.regions() {
-        for value in 1..LARGE_SIZE + 1 {
-            let cells = region.potential_cells(value);
+    for region in Grid::regions() {
+        for &val in Grid::values() {
+            let cells: Vec<_> = region.iter().filter(|&&ix| grid.has_candidate(ix, val)).collect();
             if cells.len() == 1 {
-                let cell = cells[0];
-                let deduction = Deduction::Placement(cell.idx(), value);
+                let &cell_idx = cells[0];
+                let deduction = Deduction::Placement(cell_idx, val);
                 return Some(vec![deduction]);
             }
         }

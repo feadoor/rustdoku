@@ -10,10 +10,10 @@ use strategies::Deduction;
 pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
 
     // Scan each cell and check if it is a naked single.
-    for cell in grid.cells().iter() {
-        if cell.candidates().len() == 1 {
-            let val = cell.candidates().iter().next().unwrap();
-            let deduction = Deduction::Placement(cell.idx(), val);
+    for &cell_idx in Grid::cells() {
+        if grid.num_candidates(cell_idx) == 1 {
+            let val = grid.first_candidate(cell_idx);
+            let deduction = Deduction::Placement(cell_idx, val);
             return Some(vec![deduction]);
         }
     }

@@ -43,7 +43,7 @@ fn find_deduction(grid: &Grid) -> Option<Vec<Deduction>> {
 
 /// Decide if the grid is solved or not.
 fn is_solved(grid: &Grid) -> bool {
-    grid.cells().iter().all(|x| !x.is_empty())
+    Grid::cells().iter().all(|&ix| !grid.is_empty(ix))
 }
 
 /// Apply the results of a deduction to the grid.

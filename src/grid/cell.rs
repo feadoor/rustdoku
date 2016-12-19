@@ -1,37 +1,27 @@
 //! A structure representing a single cell within a Sudoku grid.
 
-use bit_set::BitSet;
+// Bitmasks representing the possible candidates 1-9 that can be in a cell.
+static MASKS: [usize; 10] = [
+    0x000, 0x001, 0x002, 0x004, 0x008,
+    0x010, 0x020, 0x040, 0x080, 0x100,
+];
 
-use grid::{CellIdx, SMALL_SIZE};
+// A bitmask representing a cell with all candidates filled.
+static MASK_ALL: usize = 0x1ff;
 
 /// A single cell within a Sudoku grid.
-#[derive(Default)]
+#[derive(Copy, Clone)]
 pub struct Cell {
     /// The value, if any, held by this `Cell`.
     value: Option<usize>,
     /// The potential values that this `Cell` can hold.
-    candidates: BitSet,
-    /// The coordinates of this cell within its grid.
-    idx: CellIdx,
+    candidates: usize,
 }
-
-impl PartialEq for Cell {
-    fn eq(&self, other: &Cell) -> bool {
-        self.idx() == other.idx()
-    }
-}
-
-impl Eq for Cell {}
 
 impl Cell {
-    /// Create a new `Cell` at the given index with no value, and with all candidates possible.
-    pub fn new(idx: CellIdx) -> Cell {
-        let candidates = BitSet::from_bytes(&[0b01111111, 0b11000000]);
-        Cell {
-            value: None,
-            candidates: candidates,
-            idx: CellIdx::new(idx.row, idx.col),
-        }
+    /// Create a new `Cell` with no value, and with all candidates possible.
+    pub fn new() -> Cell {
+        Cell { value: None, candidates: MASK_ALL }
     }
 
     /// Get the value currently held in this `Cell`.
@@ -42,7 +32,7 @@ impl Cell {
     /// Set the value currently held in this `Cell`.
     pub fn set_value(&mut self, val: usize) {
         self.value = Some(val);
-        self.candidates.clear();
+        self.candidates = MASKS[val];
     }
 
     /// Determine whether this `Cell` is empty or not.
@@ -51,37 +41,27 @@ impl Cell {
     }
 
     /// Get the candidates which are allowed in this `Cell`.
-    pub fn candidates(&self) -> &BitSet {
-        &self.candidates
+    pub fn candidates(&self) -> usize {
+        self.candidates
     }
 
     /// Remove a potential candidate from this `Cell`.
     pub fn remove_candidate(&mut self, val: usize) {
-        self.candidates.remove(val);
+        self.candidates &= !MASKS[val];
     }
 
     /// Check if a given candidate is allowed in this `Cell`.
     pub fn has_candidate(&self, val: usize) -> bool {
-        self.candidates.contains(val)
+        self.candidates & MASKS[val] != 0
     }
 
-    /// Get the index of this cell within its grid.
-    pub fn idx(&self) -> CellIdx {
-        self.idx
+    /// Get the first candidate that can go in this `Cell`.
+    pub fn first_candidate(&self) -> usize {
+        self.candidates.trailing_zeros() as usize + 1
     }
 
-    /// A number identifying the row this cell belongs to.
-    pub fn row(&self) -> usize {
-        self.idx.row
-    }
-
-    /// A number identifying the column this cell belongs to.
-    pub fn column(&self) -> usize {
-        self.idx.col
-    }
-
-    /// A pair of numbers identifying the block this cell belongs to.
-    pub fn block(&self) -> (usize, usize) {
-        (self.idx.row / SMALL_SIZE, self.idx.col / SMALL_SIZE)
+    /// Get the number of candidates that can go in this `Cell`.
+    pub fn num_candidates(&self) -> usize {
+        self.candidates.count_ones() as usize
     }
 }

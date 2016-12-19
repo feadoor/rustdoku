@@ -2,8 +2,7 @@
 
 use itertools::Itertools;
 
-use grid::{Grid, LARGE_SIZE};
-use grid::cell::Cell;
+use grid::{CellIdx, Grid};
 use strategies::Deduction;
 
 /// Return, if one exists, a deduction based on a hidden subset.
@@ -21,7 +20,7 @@ pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
         }
     }
 
-    for degree in 2..LARGE_SIZE / 2 + 1 {
+    for degree in 2..5 {
         find_subsets!(degree, grid);
     }
 
@@ -32,12 +31,12 @@ pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
 pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Vec<Deduction>> {
 
     // Iterate over all regions of the grid and all tuples of values.
-    for region in grid.regions() {
+    for region in Grid::regions() {
 
         // Find the values which are missing from the region.
-        let mut missing_vals = vec![true; LARGE_SIZE];
-        for cell in region.cells().iter() {
-            if let Some(val) = cell.value() {
+        let mut missing_vals = [true; 9];
+        for &cell in region.iter() {
+            if let Some(val) = grid.value(cell) {
                 missing_vals[val - 1] = false;
             }
         }
@@ -49,19 +48,14 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Vec<Deduction>> {
             .map(|(idx, _)| idx + 1)
             .combinations(degree) {
 
-            // Take the union of the cells which contain these candidates.
-            let mut cells = Vec::new();
-            for &candidate in tuple.iter() {
-                for cell in region.potential_cells(candidate) {
-                    if cells.iter().find(|&&x| x == cell).is_none() {
-                        cells.push(cell);
-                    }
-                }
-            }
+            // Take the collection of cells which contain these candidates.
+            let cells = region.iter()
+                .filter(|&&ix| tuple.iter().any(|&val| grid.has_candidate(ix, val)))
+                .collect::<Vec<_>>();
 
             // Check if the candidates appear in the right number of cells.
             if cells.len() == degree {
-                let deductions = get_deductions(tuple, cells);
+                let deductions = get_deductions(grid, &tuple, &cells);
                 if !deductions.is_empty() {
                     return Some(deductions);
                 }
@@ -73,18 +67,20 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Vec<Deduction>> {
 }
 
 /// Build up the deductions resulting from a hidden subset.
-fn get_deductions(tuple: Vec<usize>, cells: Vec<&Cell>) -> Vec<Deduction> {
+fn get_deductions(grid: &Grid, tuple: &[usize], cells: &[&CellIdx]) -> Vec<Deduction> {
 
     let mut deductions = Vec::new();
 
     // Eliminate all other candidates from this group of cells.
-    for cell in cells {
-        for value in cell.candidates()
-            .iter()
-            .filter(|&d| tuple.iter().find(|&&x| x == d).is_none()) {
-
-            let deduction = Deduction::Elimination(cell.idx(), value);
-            deductions.push(deduction);
+    for &&cell in cells {
+        let mut candidates = grid.candidates(cell);
+        while candidates != 0 {
+            let val = candidates.trailing_zeros() as usize + 1;
+            if tuple.iter().find(|&&x| x == val).is_none() {
+                let deduction = Deduction::Elimination(cell, val);
+                deductions.push(deduction);
+            }
+            candidates &= candidates - 1;
         }
     }
 

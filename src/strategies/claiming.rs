@@ -1,6 +1,6 @@
 //! A definition of the claiming strategy.
 
-use grid::{Grid, LARGE_SIZE};
+use grid::Grid;
 use strategies::Deduction;
 
 /// Return, if one exists, a deduction based on claiming.
@@ -13,40 +13,44 @@ pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
     // particular block.
 
     // Rows
-    for row in grid.rows() {
-        for value in 1..LARGE_SIZE + 1 {
-            let cells = row.potential_cells(value);
+    for row in Grid::rows() {
+        for &val in Grid::values() {
+            let cells: Vec<_> = row.iter().filter(|&&ix| grid.has_candidate(ix, val)).collect();
+            if cells.len() >= 2 {
 
-            // Check if the cells all appear in a single block.
-            if cells.len() >= 2 && cells.iter().all(|x| x.block() == cells[0].block()) {
-                let eliminations: Vec<Deduction> = grid.block_from_cell(cells[0].idx())
-                    .cells()
-                    .iter()
-                    .filter(|c| c.has_candidate(value) && c.row() != cells[0].row())
-                    .map(|c| Deduction::Elimination(c.idx(), value))
-                    .collect();
-                if eliminations.len() > 0 {
-                    return Some(eliminations);
+                // Check for being in the same block.
+                if Grid::same_block(&cells) {
+                    let eliminations = (Grid::blockset(*cells[0]) & !Grid::rowset(*cells[0]))
+                        .iter()
+                        .filter(|&ix| grid.has_candidate(ix, val))
+                        .map(|ix| Deduction::Elimination(ix, val))
+                        .collect::<Vec<_>>();
+
+                    if eliminations.len() > 0 {
+                        return Some(eliminations);
+                    }
                 }
             }
         }
     }
 
     // Columns
-    for column in grid.columns() {
-        for value in 1..LARGE_SIZE + 1 {
-            let cells = column.potential_cells(value);
+    for col in Grid::columns() {
+        for &val in Grid::values() {
+            let cells: Vec<_> = col.iter().filter(|&&ix| grid.has_candidate(ix, val)).collect();
+            if cells.len() >= 2 {
 
-            // Check if the cells all appear in a single block.
-            if cells.len() >= 2 && cells.iter().all(|x| x.block() == cells[0].block()) {
-                let eliminations: Vec<Deduction> = grid.block_from_cell(cells[0].idx())
-                    .cells()
-                    .iter()
-                    .filter(|c| c.has_candidate(value) && c.column() != cells[0].column())
-                    .map(|c| Deduction::Elimination(c.idx(), value))
-                    .collect();
-                if eliminations.len() > 0 {
-                    return Some(eliminations);
+                // Check for being in the same block.
+                if Grid::same_block(&cells) {
+                    let eliminations = (Grid::blockset(*cells[0]) & !Grid::colset(*cells[0]))
+                        .iter()
+                        .filter(|&ix| grid.has_candidate(ix, val))
+                        .map(|ix| Deduction::Elimination(ix, val))
+                        .collect::<Vec<_>>();
+
+                    if eliminations.len() > 0 {
+                        return Some(eliminations);
+                    }
                 }
             }
         }
