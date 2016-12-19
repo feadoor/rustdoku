@@ -35,9 +35,9 @@ mod tests {
 
     fn check_grid(grid: &Grid) {
         // Check that each value appears in every region in the grid.
-        for region in grid.regions() {
-            for value in 1..region.cells().len() + 1 {
-                assert!(region.cells().iter().any(|x| x.value() == Some(value)));
+        for region in Grid::regions() {
+            for &value in Grid::values() {
+                assert!(region.iter().any(|&x| grid.value(x) == Some(value)));
             }
         }
     }
@@ -47,7 +47,7 @@ mod tests {
         let file = File::open(&Path::new("grids.txt")).unwrap();
         let reader = BufReader::new(file);
         for line_it in reader.lines() {
-            let mut grid = Grid::from_string(&line_it.unwrap());
+            let mut grid = Grid::from_str(&line_it.unwrap()).unwrap();
             solve(&mut grid);
             check_grid(&grid);
         }
