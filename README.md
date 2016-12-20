@@ -25,7 +25,7 @@ This occurs when a particular value can only go in one position within a region 
 
 ![alt tag](images/hiddensingle.png)
 
-In this grid, the only position in the top-left block that can hold the value 1 is R1C2.
+In this grid, the only position in the top-left block that can hold the value 1 is r1c2.
 
 ## Naked single
 
@@ -33,7 +33,7 @@ When a cell can only hold a single value, that value can be placed in the cell.
 
 ![alt tag](images/nakedsingle.png)
 
-In this grid, R5C5 can only take the value 5.
+In this grid, r5c5 can only take the value 5.
 
 ## Pointing
 
@@ -57,7 +57,7 @@ When a group of n cells within a single region have, between them, only n candid
 
 ![alt tag](images/nakedsubset.png)
 
-In this grid, cells R2C4, R3C4 and R7C4 contain between them the values 1, 5 and 6. This means that these values can be eliminated from the rest of the column.
+In this grid, cells r2c4, r3c4 and r7c4 contain between them the values 1, 5 and 6. This means that these values can be eliminated from the rest of the column.
 
 ## Hidden subsets
 
@@ -65,7 +65,7 @@ When there is a region such that a group of n values can, between them, only app
 
 ![alt tag](images/hiddensubset.png)
 
-In this puzzle, in block 2, the values 2, 6 and 9 can only appear in cells R2C5, R3C4 and R3C5. This means that other values can be removed from those cells.
+In this puzzle, in block 2, the values 2, 6 and 9 can only appear in cells r2c5, r3c4 and r3c5. This means that other values can be removed from those cells.
 
 ## Fish (X-Wing, Swordfish, Jellyfish)
 
@@ -91,7 +91,7 @@ The XY-Wing is a pattern involving 3 bi-value cells: the *pivot*, with candidate
 
 ![alt tag](images/xywing.png)
 
-In this grid, the pivot is shown in green and the pincers in yellow. Together, they eliminate 6 from r6c1.
+In this grid, the pivot is shown in green and the pincers in yellow. Together, they eliminate 6 from r6c1 and r5c5.
 
 ## XYZ-Wing
 
