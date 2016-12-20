@@ -24,7 +24,7 @@ pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
                         .map(|ix| Deduction::Elimination(ix, val))
                         .collect::<Vec<_>>();
 
-                    if eliminations.len() > 0 {
+                    if !eliminations.is_empty() {
                         return Some(eliminations);
                     }
                 }
@@ -37,7 +37,7 @@ pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
                         .map(|ix| Deduction::Elimination(ix, val))
                         .collect::<Vec<_>>();
 
-                    if eliminations.len() > 0 {
+                    if !eliminations.is_empty() {
                         return Some(eliminations);
                     }
                 }

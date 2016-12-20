@@ -6,24 +6,25 @@ extern crate itertools;
 mod grid;
 mod strategies;
 
+use std::io;
+use std::io::prelude::*;
+
 use grid::Grid;
 use strategies::solve;
 
 fn main() {
-    let mut grid = Grid::from_str("000005004\
-                                   000000910\
-                                   000900038\
-                                   000304507\
-                                   070080060\
-                                   803502000\
-                                   490003000\
-                                   025000000\
-                                   600700000")
-      .unwrap();
-
-    println!("Before solving:\n\n{}", grid);
-    solve(&mut grid);
-    println!("\nAfter solving:\n\n{}", grid);
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        let grid_result = Grid::from_str(&line.unwrap());
+        if grid_result.is_ok() {
+            let mut grid = grid_result.ok().unwrap();
+            println!("Before solving:\n\n{}", grid);
+            solve(&mut grid);
+            println!("\nAfter solving:\n\n{}", grid);
+        } else {
+            println!("{}", grid_result.err().unwrap());
+        }
+    }
 }
 
 #[cfg(test)]
@@ -48,6 +49,7 @@ mod tests {
         let reader = BufReader::new(file);
         for line_it in reader.lines() {
             let mut grid = Grid::from_str(&line_it.unwrap()).unwrap();
+            println!("{}", grid);
             solve(&mut grid);
             check_grid(&grid);
         }

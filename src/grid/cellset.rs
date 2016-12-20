@@ -6,6 +6,7 @@ use std::ops::{BitAndAssign, BitOrAssign, BitXorAssign};
 use grid::CellIdx;
 
 /// A set of cells from a Sudoku grid, represented internally as a bitmask.
+#[derive(Eq, PartialEq, Debug)]
 pub struct CellSet {
     /// The high order bits of the bitmask.
     pub hi: u64,
@@ -48,12 +49,47 @@ impl CellSet {
         }
     }
 
+    /// Create an empty `CellSet`.
+    pub fn empty() -> CellSet {
+        CellSet::new(0x0, 0x0)
+    }
+
+    /// Create a `CellSet` containing the cells contained in the given iterator.
+    pub fn from_cells<I>(cells: I) -> CellSet
+        where I: IntoIterator<Item = CellIdx>
+    {
+        let mut lo = 0x0;
+        let mut hi = 0x0;
+        for cell in cells {
+            match cell {
+                0...63 => lo |= 1 << cell,
+                64...81 => hi |= 1 << (cell - 64),
+                _ => unreachable!(),
+            }
+        }
+
+        CellSet {
+            hi: hi,
+            lo: lo,
+        }
+    }
+
     /// An iterator over the cells held in this `CellSet`.
     pub fn iter(&self) -> CellSetIterator {
         CellSetIterator {
             hi: self.hi,
             lo: self.lo,
         }
+    }
+
+    /// The number of cells contained in this `CellSet`.
+    pub fn len(&self) -> usize {
+        self.hi.count_ones() as usize + self.lo.count_ones() as usize
+    }
+
+    /// Check if this `CellSet` is empty.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 
@@ -63,7 +99,7 @@ macro_rules! binop_from_ref_ref {
             type Output = CellSet;
 
             fn $f(self, rhs: &'a CellSet) -> CellSet {
-                &self & rhs
+                $t::$f(&self, rhs)
             }
         }
 
@@ -71,7 +107,7 @@ macro_rules! binop_from_ref_ref {
             type Output = CellSet;
 
             fn $f(self, rhs: CellSet) -> CellSet {
-                self & &rhs
+                $t::$f(self, &rhs)
             }
         }
 
@@ -79,7 +115,7 @@ macro_rules! binop_from_ref_ref {
             type Output = CellSet;
 
             fn $f(self, rhs: CellSet) -> CellSet {
-                &self & &rhs
+                $t::$f(&self, &rhs)
             }
         }
     }
@@ -124,6 +160,7 @@ impl<'a, 'b> BitOr<&'a CellSet> for &'b CellSet {
         }
     }
 }
+
 impl<'a> BitOrAssign<&'a CellSet> for CellSet {
     fn bitor_assign(&mut self, other: &'a CellSet) {
         self.hi |= other.hi;

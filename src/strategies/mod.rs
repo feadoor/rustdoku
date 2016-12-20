@@ -7,10 +7,12 @@ mod pointing;
 mod claiming;
 mod naked_subset;
 mod hidden_subset;
+mod basic_fish;
 
 use grid::{CellIdx, Grid};
 
 /// The different types of deduction that can be made on a grid.
+#[derive(Debug)]
 pub enum Deduction {
     /// Indicates that the given value can be placed in the cell at the given index.
     Placement(CellIdx, usize),
@@ -37,6 +39,7 @@ fn find_deduction(grid: &Grid) -> Option<Vec<Deduction>> {
     search!(claiming, grid);
     search!(naked_subset, grid);
     search!(hidden_subset, grid);
+    search!(basic_fish, grid);
 
     None
 }

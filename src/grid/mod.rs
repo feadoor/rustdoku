@@ -1,12 +1,13 @@
 //! A structure representing a Sudoku grid.
 
 mod cell;
-mod cellset;
+pub mod cellset;
 mod regions;
 
 use std::fmt;
 
 use self::cell::Cell;
+use self::cellset::CellSet;
 
 /// A named type for indexing cells of the grid.
 pub type CellIdx = usize;
@@ -156,5 +157,13 @@ impl Grid {
     /// Get the candidates for the given cell.
     pub fn candidates(&self, cell_idx: CellIdx) -> usize {
         self.cells[cell_idx].candidates()
+    }
+
+    /// Get the cells which are able to hold a particular value.
+    pub fn cells_with_candidate(&self, value: usize) -> CellSet {
+        let cells = Grid::cells().iter()
+            .filter_map(|&ix| if self.has_candidate(ix, value) { Some(ix) } else { None });
+
+        CellSet::from_cells(cells)
     }
 }

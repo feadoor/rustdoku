@@ -32,7 +32,7 @@ impl Cell {
     /// Set the value currently held in this `Cell`.
     pub fn set_value(&mut self, val: usize) {
         self.value = Some(val);
-        self.candidates = MASKS[val];
+        self.candidates = 0x0;
     }
 
     /// Determine whether this `Cell` is empty or not.

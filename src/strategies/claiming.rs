@@ -16,19 +16,15 @@ pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
     for row in Grid::rows() {
         for &val in Grid::values() {
             let cells: Vec<_> = row.iter().filter(|&&ix| grid.has_candidate(ix, val)).collect();
-            if cells.len() >= 2 {
+            if cells.len() >= 2 && Grid::same_block(&cells) {
+                let eliminations = (Grid::blockset(*cells[0]) & !Grid::rowset(*cells[0]))
+                    .iter()
+                    .filter(|&ix| grid.has_candidate(ix, val))
+                    .map(|ix| Deduction::Elimination(ix, val))
+                    .collect::<Vec<_>>();
 
-                // Check for being in the same block.
-                if Grid::same_block(&cells) {
-                    let eliminations = (Grid::blockset(*cells[0]) & !Grid::rowset(*cells[0]))
-                        .iter()
-                        .filter(|&ix| grid.has_candidate(ix, val))
-                        .map(|ix| Deduction::Elimination(ix, val))
-                        .collect::<Vec<_>>();
-
-                    if eliminations.len() > 0 {
-                        return Some(eliminations);
-                    }
+                if !eliminations.is_empty() {
+                    return Some(eliminations);
                 }
             }
         }
@@ -38,19 +34,15 @@ pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
     for col in Grid::columns() {
         for &val in Grid::values() {
             let cells: Vec<_> = col.iter().filter(|&&ix| grid.has_candidate(ix, val)).collect();
-            if cells.len() >= 2 {
+            if cells.len() >= 2 && Grid::same_block(&cells) {
+                let eliminations = (Grid::blockset(*cells[0]) & !Grid::colset(*cells[0]))
+                    .iter()
+                    .filter(|&ix| grid.has_candidate(ix, val))
+                    .map(|ix| Deduction::Elimination(ix, val))
+                    .collect::<Vec<_>>();
 
-                // Check for being in the same block.
-                if Grid::same_block(&cells) {
-                    let eliminations = (Grid::blockset(*cells[0]) & !Grid::colset(*cells[0]))
-                        .iter()
-                        .filter(|&ix| grid.has_candidate(ix, val))
-                        .map(|ix| Deduction::Elimination(ix, val))
-                        .collect::<Vec<_>>();
-
-                    if eliminations.len() > 0 {
-                        return Some(eliminations);
-                    }
+                if !eliminations.is_empty() {
+                    return Some(eliminations);
                 }
             }
         }

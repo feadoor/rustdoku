@@ -20,9 +20,9 @@ pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
         }
     }
 
-    for degree in 2..5 {
-        find_subsets!(degree, grid);
-    }
+    find_subsets!(2, grid);
+    find_subsets!(3, grid);
+    find_subsets!(4, grid);
 
     None
 }
@@ -69,10 +69,8 @@ fn get_deductions(grid: &Grid, tuple: &[&CellIdx], mut candidates: usize) -> Vec
     if Grid::same_row(tuple) {
         for &cell in Grid::row(*tuple[0]) {
             for &val in &values {
-                if grid.has_candidate(cell, val) {
-                    if tuple.iter().find(|&&&x| x == cell).is_none() {
-                        deductions.push(Deduction::Elimination(cell, val));
-                    }
+                if grid.has_candidate(cell, val) && tuple.iter().find(|&&&x| x == cell).is_none() {
+                    deductions.push(Deduction::Elimination(cell, val));
                 }
             }
         }
@@ -83,10 +81,8 @@ fn get_deductions(grid: &Grid, tuple: &[&CellIdx], mut candidates: usize) -> Vec
     if Grid::same_column(tuple) {
         for &cell in Grid::column(*tuple[0]) {
             for &val in &values {
-                if grid.has_candidate(cell, val) {
-                    if tuple.iter().find(|&&&x| x == cell).is_none() {
-                        deductions.push(Deduction::Elimination(cell, val));
-                    }
+                if grid.has_candidate(cell, val) && tuple.iter().find(|&&&x| x == cell).is_none() {
+                    deductions.push(Deduction::Elimination(cell, val));
                 }
             }
         }
@@ -97,10 +93,8 @@ fn get_deductions(grid: &Grid, tuple: &[&CellIdx], mut candidates: usize) -> Vec
     if Grid::same_block(tuple) {
         for &cell in Grid::block(*tuple[0]) {
             for &val in &values {
-                if grid.has_candidate(cell, val) {
-                    if tuple.iter().find(|&&&x| x == cell).is_none() {
-                        deductions.push(Deduction::Elimination(cell, val));
-                    }
+                if grid.has_candidate(cell, val) && tuple.iter().find(|&&&x| x == cell).is_none() {
+                    deductions.push(Deduction::Elimination(cell, val));
                 }
             }
         }
