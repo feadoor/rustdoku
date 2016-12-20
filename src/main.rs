@@ -48,10 +48,13 @@ mod tests {
         let file = File::open(&Path::new("grids.txt")).unwrap();
         let reader = BufReader::new(file);
         for line_it in reader.lines() {
-            let mut grid = Grid::from_str(&line_it.unwrap()).unwrap();
-            println!("{}", grid);
-            solve(&mut grid);
-            check_grid(&grid);
+            let line = line_it.unwrap();
+            if !line.is_empty() && !line.starts_with("//") {
+                let mut grid = Grid::from_str(&line).unwrap();
+                println!("{}", grid);
+                solve(&mut grid);
+                check_grid(&grid);
+            }
         }
     }
 }
