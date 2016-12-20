@@ -77,3 +77,7 @@ so other values can be eliminated from the cells in question.
 
 In this puzzle, in block 2, the values 2, 6 and 9 can only appear in cells R2C5, R3C4 and R3C5. This means that other values can be
 removed from those cells.
+
+## Fish (X-Wing, Swordfish, Jellyfish)
+
+TODO
