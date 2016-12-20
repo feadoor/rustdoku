@@ -2,9 +2,11 @@
 
 mod cell;
 pub mod cellset;
-mod regions;
+mod utils;
 
 use std::fmt;
+
+use ansi_term::Style;
 
 use self::cell::Cell;
 use self::cellset::CellSet;
@@ -44,8 +46,14 @@ pub struct Grid {
 impl fmt::Display for Grid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 
+        // Work out the most candidates that will need to fit in any cell.
+        let mut max_c = Grid::cells().iter().map(|ix| self.num_candidates(ix)).max().unwrap();
+        if max_c == 0 {
+            max_c = 1;
+        }
+
         // Create a String which will separate groups of rows in the grid.
-        let dashes = String::from_utf8(vec![b'-'; 5]).unwrap();
+        let dashes = String::from_utf8(vec![b'-'; 3 * max_c + 2]).unwrap();
         let row_sep = (0..3).map(|_| "+".to_string() + &dashes).collect::<String>() + "+";
 
         try!(write!(f, "{}", row_sep));
@@ -58,10 +66,22 @@ impl fmt::Display for Grid {
                 try!(write!(f, "\n|"));
             }
 
-            // Write either the number in the cell, or a dot if there isn't one.
-            match self.cells[cell_idx].value() {
-                None => try!(write!(f, ".")),
-                Some(val) => try!(write!(f, "{}", val)),
+            // Write either the number in the cell, or all its candidates if there isn't one.
+            match self.value(cell_idx) {
+                Some(val) => {
+                    try!(write!(f, "{}", Style::new().bold().paint(format!("{}", val))));
+                    try!(write!(f, "{}", String::from_utf8(vec![b' '; max_c - 1]).unwrap()));
+                }
+                None => {
+                    let mut written = 0;
+                    let mut candidates = self.candidates(cell_idx);
+                    while candidates != 0 {
+                        try!(write!(f, "{}", candidates.trailing_zeros() as usize + 1));
+                        candidates &= candidates - 1;
+                        written += 1;
+                    }
+                    try!(write!(f, "{}", String::from_utf8(vec![b' '; max_c - written]).unwrap()));
+                }
             }
 
             // If another number comes next, add some space between them. Otherwise, write the
@@ -119,7 +139,7 @@ impl Grid {
         self.cells[cell_idx].set_value(val);
 
         // Remove it from all neighbouring cells.
-        for &neighbour_idx in Grid::neighbours(cell_idx) {
+        for neighbour_idx in Grid::neighbours(cell_idx).iter() {
             self.eliminate_value(neighbour_idx, val);
         }
     }
@@ -162,7 +182,7 @@ impl Grid {
     /// Get the cells which are able to hold a particular value.
     pub fn cells_with_candidate(&self, value: usize) -> CellSet {
         let cells = Grid::cells().iter()
-            .filter_map(|&ix| if self.has_candidate(ix, value) { Some(ix) } else { None });
+            .filter_map(|ix| if self.has_candidate(ix, value) { Some(ix) } else { None });
 
         CellSet::from_cells(cells)
     }

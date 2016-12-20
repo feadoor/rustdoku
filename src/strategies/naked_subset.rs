@@ -3,19 +3,21 @@
 use itertools::Itertools;
 
 use grid::{CellIdx, Grid};
-use strategies::Deduction;
+use grid::cellset::CellSet;
+use strategies::{Deduction, Move};
+use strategies::outputs::NakedSubset;
 
 /// Return, if one exists, a deduction based on a naked subset.
 ///
 /// A naked subset is when, in a particular region, n cells can only hold, between them, n
 /// different values. Then those values can be eliminated from elsewhere in the region.
-pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
+pub fn find(grid: &Grid) -> Option<Move> {
 
     macro_rules! find_subsets {
         ($d: expr, $x: ident) => {
-            let deductions = find_with_degree($x, $d);
-            if deductions.is_some() {
-                return deductions;
+            let mov = find_with_degree($x, $d);
+            if mov.is_some() {
+                return mov;
             }
         }
     }
@@ -28,22 +30,31 @@ pub fn find(grid: &Grid) -> Option<Vec<Deduction>> {
 }
 
 /// Find a naked subset of the given degree in the given region.
-pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Vec<Deduction>> {
+pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
 
     // Iterate over all tuples of empty cells from regions of the grid.
     for region in Grid::regions() {
         for tuple in region.iter()
-            .filter(|&&ix| grid.is_empty(ix))
-            .combinations(degree) {
-
+            .filter(|&ix| grid.is_empty(ix))
+            .combinations(degree)
+        {
             // Take the union of the candidates found in these cells.
-            let candidates = tuple.iter().fold(0, |acc, &&x| acc | grid.candidates(x));
+            let candidates = tuple.iter().fold(0, |acc, &x| acc | grid.candidates(x));
 
             // Check if the right number of candidates appear.
             if candidates.count_ones() as usize == degree {
                 let deductions = get_deductions(grid, &tuple, candidates);
                 if !deductions.is_empty() {
-                    return Some(deductions);
+
+                    // Get a human-readable description of the deduction and return it.
+                    let reason = NakedSubset {
+                        cells: tuple,
+                        candidates: candidates
+                    };
+                    return Some(Move {
+                        deductions: deductions,
+                        reason: Box::new(reason),
+                    });
                 }
             }
         }
@@ -53,7 +64,7 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Vec<Deduction>> {
 }
 
 /// Build up the deductions resulting from a naked subset.
-fn get_deductions(grid: &Grid, tuple: &[&CellIdx], mut candidates: usize) -> Vec<Deduction> {
+fn get_deductions(grid: &Grid, tuple: &[CellIdx], mut candidates: usize) -> Vec<Deduction> {
 
     let mut deductions = Vec::new();
 
@@ -64,38 +75,15 @@ fn get_deductions(grid: &Grid, tuple: &[&CellIdx], mut candidates: usize) -> Vec
         candidates &= candidates - 1;
     }
 
-    // If the cells are all in the same row, then eliminate the candidates from other cells in
-    // that row.
-    if Grid::same_row(tuple) {
-        for &cell in Grid::row(*tuple[0]) {
-            for &val in &values {
-                if grid.has_candidate(cell, val) && tuple.iter().find(|&&&x| x == cell).is_none() {
-                    deductions.push(Deduction::Elimination(cell, val));
-                }
-            }
-        }
-    }
+    // Eliminate candidates that can see all the cells in the tuple.
+    let common_cells = tuple.iter()
+        .map(|&ix| Grid::neighbours(ix))
+        .fold(!CellSet::empty(), |acc, x| acc & x);
 
-    // If the cells are all in the same column, then eliminate the candidates from other cells in
-    // that column.
-    if Grid::same_column(tuple) {
-        for &cell in Grid::column(*tuple[0]) {
-            for &val in &values {
-                if grid.has_candidate(cell, val) && tuple.iter().find(|&&&x| x == cell).is_none() {
-                    deductions.push(Deduction::Elimination(cell, val));
-                }
-            }
-        }
-    }
-
-    // If the cells are all in the same block, then eliminate the candidates from other cells in
-    // that block.
-    if Grid::same_block(tuple) {
-        for &cell in Grid::block(*tuple[0]) {
-            for &val in &values {
-                if grid.has_candidate(cell, val) && tuple.iter().find(|&&&x| x == cell).is_none() {
-                    deductions.push(Deduction::Elimination(cell, val));
-                }
+    for cell in common_cells.iter() {
+        for &val in &values {
+            if grid.has_candidate(cell, val) {
+                deductions.push(Deduction::Elimination(cell, val));
             }
         }
     }

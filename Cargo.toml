@@ -4,5 +4,6 @@ version = "0.1.0"
 authors = ["Sam Cappleman-Lynes <sam.capplemanlynes@gmail.com>"]
 
 [dependencies]
+ansi_term = "0.9.0"
 bit-set = "0.4.0"
 itertools = "0.5.7"

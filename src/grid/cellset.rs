@@ -6,7 +6,7 @@ use std::ops::{BitAndAssign, BitOrAssign, BitXorAssign};
 use grid::CellIdx;
 
 /// A set of cells from a Sudoku grid, represented internally as a bitmask.
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub struct CellSet {
     /// The high order bits of the bitmask.
     pub hi: u64,
@@ -90,6 +90,18 @@ impl CellSet {
     /// Check if this `CellSet` is empty.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    /// Get the first cell from this `CellSet`.
+    pub fn first(&self) -> Option<CellIdx> {
+        self.iter().next()
+    }
+
+    /// Filter this `CellSet` by a predicate.
+    pub fn filter<P>(&self, predicate: P) -> CellSet
+        where P: FnMut(&CellIdx) -> bool
+    {
+        CellSet::from_cells(self.iter().filter(predicate))
     }
 }
 
