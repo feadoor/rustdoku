@@ -1,4 +1,4 @@
-//! Some utility functions for working with regions and values of a Sudoku grid.
+//! Some utility functions for working with regions of a Sudoku grid.
 
 use grid::{CellIdx, Grid};
 use grid::cellset::CellSet;
@@ -299,57 +299,6 @@ impl Grid {
         ];
 
         &NEIGHBOURS_SETS[cell_idx]
-    }
-
-    //// Get the index of the row that the given cell belongs to.
-    pub fn row_idx(cell_idx: CellIdx) -> usize {
-        static ROW_INDICES: [usize; 81] = [
-            0, 0, 0, 0, 0, 0, 0, 0, 0,
-            1, 1, 1, 1, 1, 1, 1, 1, 1,
-            2, 2, 2, 2, 2, 2, 2, 2, 2,
-            3, 3, 3, 3, 3, 3, 3, 3, 3,
-            4, 4, 4, 4, 4, 4, 4, 4, 4,
-            5, 5, 5, 5, 5, 5, 5, 5, 5,
-            6, 6, 6, 6, 6, 6, 6, 6, 6,
-            7, 7, 7, 7, 7, 7, 7, 7, 7,
-            8, 8, 8, 8, 8, 8, 8, 8, 8,
-        ];
-
-        ROW_INDICES[cell_idx]
-    }
-
-    /// Get the index of the column that the given cell belongs to.
-    pub fn column_idx(cell_idx: CellIdx) -> usize {
-        static COLUMN_INDICES: [usize; 81] = [
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-        ];
-
-        COLUMN_INDICES[cell_idx]
-    }
-
-    /// Get the index of the block that the given cell belongs to.
-    pub fn block_idx(cell_idx: CellIdx) -> usize {
-        static BLOCK_INDICES: [usize; 81] = [
-            0, 0, 0, 1, 1, 1, 2, 2, 2,
-            0, 0, 0, 1, 1, 1, 2, 2, 2,
-            0, 0, 0, 1, 1, 1, 2, 2, 2,
-            3, 3, 3, 4, 4, 4, 5, 5, 5,
-            3, 3, 3, 4, 4, 4, 5, 5, 5,
-            3, 3, 3, 4, 4, 4, 5, 5, 5,
-            6, 6, 6, 7, 7, 7, 8, 8, 8,
-            6, 6, 6, 7, 7, 7, 8, 8, 8,
-            6, 6, 6, 7, 7, 7, 8, 8, 8,
-        ];
-
-        BLOCK_INDICES[cell_idx]
     }
 
     /// Determine if a group of cells share a row.

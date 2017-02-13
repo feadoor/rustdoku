@@ -2,7 +2,6 @@
 
 use grid::Grid;
 use strategies::{Deduction, Move};
-use strategies::outputs::XYWing;
 
 /// Return, if one exists, an elimination based on an XY-wing.
 ///
@@ -16,8 +15,8 @@ pub fn find(grid: &Grid) -> Option<Move> {
         // Look for possible choices for the first pincer cell.
         for pincer1 in Grid::neighbours(pivot).iter()
             .filter(|&ix| grid.num_candidates(ix) == 2 &&
-                           grid.candidates(ix) != grid.candidates(pivot) &&
-                           grid.candidates(ix) & grid.candidates(pivot) != 0)
+                          grid.candidates(ix) != grid.candidates(pivot) &&
+                          grid.candidates(ix) & grid.candidates(pivot) != 0)
         {
             // Now get a cell that can act as the second pincer.
             let candidates = grid.candidates(pincer1) ^ grid.candidates(pivot);
@@ -33,22 +32,10 @@ pub fn find(grid: &Grid) -> Option<Move> {
                     .map(|ix| Deduction::Elimination(ix, ex_candidate))
                     .collect::<Vec<_>>();
                 if ! deductions.is_empty() {
-
-                    // Get a human-readable description of the deduction and return it.
-                    let reason = XYWing {
-                        pivot: pivot,
-                        pincer1: pincer1,
-                        pincer2: pincer2,
-                        value: ex_candidate,
-                    };
-                    return Some(Move {
-                        deductions: deductions,
-                        reason: Box::new(reason),
-                    });
+                    return Some(Move { deductions: deductions });
                 }
             }
         }
-
     }
 
     None

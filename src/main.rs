@@ -22,7 +22,7 @@ fn main() {
         if grid_result.is_ok() {
             let mut grid = grid_result.ok().unwrap();
             println!("Before solving:\n\n{}", grid);
-            solve(&mut grid, true);
+            solve(&mut grid);
             println!("\nAfter solving:\n\n{}", grid);
         } else {
             println!("{}", grid_result.err().unwrap());
@@ -56,7 +56,7 @@ mod tests {
             if !line.is_empty() && !line.starts_with("//") {
                 let mut grid = Grid::from_str(&line).unwrap();
                 println!("{}", grid);
-                solve(&mut grid, false);
+                solve(&mut grid);
                 check_grid(&grid);
             }
         }

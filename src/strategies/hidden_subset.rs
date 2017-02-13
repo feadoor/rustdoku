@@ -5,7 +5,6 @@ use itertools::Itertools;
 use grid::Grid;
 use grid::cellset::CellSet;
 use strategies::{Deduction, Move};
-use strategies::outputs::HiddenSubset;
 
 /// Return, if one exists, a deduction based on a hidden subset.
 ///
@@ -57,16 +56,7 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
             if cells.len() == degree {
                 let deductions = get_deductions(grid, &tuple, &cells);
                 if !deductions.is_empty() {
-
-                    // Get a human-readable description of the deduction and return it.
-                    let reason = HiddenSubset {
-                        cells: cells,
-                        candidates: tuple
-                    };
-                    return Some(Move {
-                        deductions: deductions,
-                        reason: Box::new(reason),
-                    });
+                    return Some(Move { deductions: deductions });
                 }
             }
         }

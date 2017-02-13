@@ -1,8 +1,7 @@
 //! A definition of the naked single strategy.
 
 use grid::Grid;
-use strategies::{Contradiction, Deduction, Move};
-use strategies::outputs::NakedSingle;
+use strategies::{Deduction, Move};
 
 /// Return, if one exists, a deduction based on a naked single.
 ///
@@ -15,24 +14,14 @@ pub fn find(grid: &Grid) -> Option<Move> {
 
         // Also put in a check for cells that have no candidates remaining.
         if grid.num_candidates(cell_idx) == 0 && grid.is_empty(cell_idx) {
-            return Some(Move {
-                deductions: vec![Deduction::Contradiction],
-                reason: Box::new(Contradiction { }),
-            })
+            return Some(Move { deductions: vec![Deduction::Contradiction] })
         }
 
         if grid.num_candidates(cell_idx) == 1 {
             // Get a human-readable description of the deduction and return it.
             let val = grid.first_candidate(cell_idx);
             let deduction = Deduction::Placement(cell_idx, val);
-            let reason = NakedSingle {
-                cell: cell_idx
-            };
-
-            return Some(Move {
-                deductions: vec![deduction],
-                reason: Box::new(reason),
-            });
+            return Some(Move { deductions: vec![deduction] });
         }
     }
 

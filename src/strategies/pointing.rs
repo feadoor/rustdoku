@@ -2,7 +2,6 @@
 
 use grid::Grid;
 use strategies::{Deduction, Move};
-use strategies::outputs::Pointing;
 
 /// Return, if one exists, a deduction based on pointing.
 ///
@@ -28,17 +27,7 @@ pub fn find(grid: &Grid) -> Option<Move> {
                         .collect::<Vec<_>>();
 
                     if !eliminations.is_empty() {
-
-                        // Get a human-readable description of the deduction and return it.
-                        let reason = Pointing {
-                            block: block.clone(),
-                            value: val,
-                            region: row.clone()
-                        };
-                        return Some(Move {
-                            deductions: eliminations,
-                            reason: Box::new(reason),
-                        });
+                        return Some(Move { deductions: eliminations });
                     }
                 }
 
@@ -53,17 +42,7 @@ pub fn find(grid: &Grid) -> Option<Move> {
                         .collect::<Vec<_>>();
 
                     if !eliminations.is_empty() {
-
-                        // Get a human-readable description of the deduction and return it.
-                        let reason = Pointing {
-                            block: block.clone(),
-                            value: val,
-                            region: col.clone()
-                        };
-                        return Some(Move {
-                            deductions: eliminations,
-                            reason: Box::new(reason),
-                        });
+                        return Some(Move { deductions: eliminations });
                     }
                 }
             }

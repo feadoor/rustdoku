@@ -5,7 +5,6 @@ use itertools::Itertools;
 use grid::{CellIdx, Grid};
 use grid::cellset::CellSet;
 use strategies::{Deduction, Move};
-use strategies::outputs::NakedSubset;
 
 /// Return, if one exists, a deduction based on a naked subset.
 ///
@@ -45,16 +44,7 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
             if candidates.count_ones() as usize == degree {
                 let deductions = get_deductions(grid, &tuple, candidates);
                 if !deductions.is_empty() {
-
-                    // Get a human-readable description of the deduction and return it.
-                    let reason = NakedSubset {
-                        cells: tuple,
-                        candidates: candidates
-                    };
-                    return Some(Move {
-                        deductions: deductions,
-                        reason: Box::new(reason),
-                    });
+                    return Some(Move { deductions: deductions });
                 }
             }
         }

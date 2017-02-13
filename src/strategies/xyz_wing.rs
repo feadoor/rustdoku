@@ -2,7 +2,6 @@
 
 use grid::Grid;
 use strategies::{Deduction, Move};
-use strategies::outputs::XYZWing;
 
 /// Return, if one exists, an elimination based on an XYZ-wing.
 ///
@@ -36,18 +35,7 @@ pub fn find(grid: &Grid) -> Option<Move> {
                     .collect::<Vec<_>>();
 
                 if ! deductions.is_empty() {
-
-                    // Get a human-readable description of the deduction and return it.
-                    let reason = XYZWing {
-                        pivot: pivot,
-                        pincer1: pincer1,
-                        pincer2: pincer2,
-                        value: ex_candidate,
-                    };
-                    return Some(Move {
-                        deductions: deductions,
-                        reason: Box::new(reason),
-                    });
+                    return Some(Move { deductions: deductions });
                 }
             }
         }

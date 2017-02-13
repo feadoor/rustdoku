@@ -2,7 +2,6 @@
 
 use grid::Grid;
 use strategies::{Deduction, Move};
-use strategies::outputs::Claiming;
 
 /// Return, if one exists, a deduction based on claiming.
 ///
@@ -19,25 +18,14 @@ pub fn find(grid: &Grid) -> Option<Move> {
             let cells = row.filter(|&ix| grid.has_candidate(ix, val));
             if cells.len() >= 2 && Grid::same_block(&cells) {
                 let cell = cells.first().unwrap();
-                let block = Grid::block(cell);
-                let eliminations = (block & !Grid::row(cell))
+                let eliminations = (Grid::block(cell) & !Grid::row(cell))
                     .iter()
                     .filter(|&ix| grid.has_candidate(ix, val))
                     .map(|ix| Deduction::Elimination(ix, val))
                     .collect::<Vec<_>>();
 
                 if !eliminations.is_empty() {
-
-                    // Get a human-readable description of the deduction and return it.
-                    let reason = Claiming {
-                        region: row.clone(),
-                        value: val,
-                        block: block.clone()
-                    };
-                    return Some(Move {
-                        deductions: eliminations,
-                        reason: Box::new(reason),
-                    });
+                    return Some(Move { deductions: eliminations });
                 }
             }
         }
@@ -49,7 +37,6 @@ pub fn find(grid: &Grid) -> Option<Move> {
             let cells = col.filter(|&ix| grid.has_candidate(ix, val));
             if cells.len() >= 2 && Grid::same_block(&cells) {
                 let cell = cells.first().unwrap();
-                let block = Grid::block(cell);
                 let eliminations = (Grid::block(cell) & !Grid::column(cell))
                     .iter()
                     .filter(|&ix| grid.has_candidate(ix, val))
@@ -57,17 +44,7 @@ pub fn find(grid: &Grid) -> Option<Move> {
                     .collect::<Vec<_>>();
 
                 if !eliminations.is_empty() {
-
-                    // Get a human-readable description of the deduction and return it.
-                    let reason = Claiming {
-                        region: col.clone(),
-                        value: val,
-                        block: block.clone()
-                    };
-                    return Some(Move {
-                        deductions: eliminations,
-                        reason: Box::new(reason),
-                    });
+                    return Some(Move { deductions: eliminations });
                 }
             }
         }

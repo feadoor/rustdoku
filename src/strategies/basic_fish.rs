@@ -5,7 +5,6 @@ use itertools::Itertools;
 use grid::Grid;
 use grid::cellset::CellSet;
 use strategies::{Deduction, Move};
-use strategies::outputs::BasicFish;
 
 /// Return, if one exists, a deduction based on a fish.
 ///
@@ -108,19 +107,7 @@ fn find_standard_fish(grid: &Grid, degree: usize, value: usize, rows: bool) -> O
                 .map(|ix| Deduction::Elimination(ix, value))
                 .collect();
             if !deductions.is_empty() {
-
-                // Get a human-readable description of the deduction and return it.
-                let reason = BasicFish {
-                    base: bases.iter().map(|&x| x.clone()).collect(),
-                    value: value,
-                    eliminations: eliminations,
-                    finned: false,
-                    rows: rows
-                };
-                return Some(Move {
-                    deductions: deductions,
-                    reason: Box::new(reason),
-                });
+                return Some(Move { deductions: deductions });
             }
         }
     }
@@ -185,19 +172,7 @@ fn find_finned_fish(grid: &Grid, degree: usize, value: usize, rows: bool) -> Opt
             }
 
             if !deductions.is_empty() {
-
-                // Get a human-readable description of the deduction and return it.
-                let reason = BasicFish {
-                    base: bases.iter().map(|&x| x.clone()).collect(),
-                    value: value,
-                    eliminations: elims,
-                    finned: true,
-                    rows: rows
-                };
-                return Some(Move {
-                    deductions: deductions,
-                    reason: Box::new(reason),
-                });
+                return Some(Move { deductions: deductions });
             }
         }
     }

@@ -1,8 +1,7 @@
 //! A definition of the full house strategy.
 
 use grid::Grid;
-use strategies::{Contradiction, Deduction, Move};
-use strategies::outputs::FullHouse;
+use strategies::{Deduction, Move};
 
 /// Return, if one exists, a deduction based on a full house.
 ///
@@ -18,24 +17,13 @@ pub fn find(grid: &Grid) -> Option<Move> {
 
             // If the puzzle was invalid, then we could have a cell with no candidates. Check.
             if grid.num_candidates(cell_idx) == 0 {
-                return Some(Move {
-                    deductions: vec![Deduction::Contradiction],
-                    reason: Box::new(Contradiction { }),
-                });
+                return Some(Move { deductions: vec![Deduction::Contradiction] });
             }
 
             // Get a human-readable description of the deduction and return it.
             let val = grid.first_candidate(cell_idx);
             let deduction = Deduction::Placement(cell_idx, val);
-            let reason = FullHouse {
-                cell: cell_idx,
-                region: region.clone()
-            };
-
-            return Some(Move {
-                deductions: vec![deduction],
-                reason: Box::new(reason),
-            });
+            return Some(Move { deductions: vec![deduction] });
         }
     }
 

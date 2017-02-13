@@ -11,10 +11,6 @@ mod basic_fish;
 mod xy_wing;
 mod xyz_wing;
 
-mod outputs;
-
-use std::fmt;
-
 use grid::{CellIdx, Grid};
 
 /// The different types of deduction that can be made on a grid.
@@ -28,33 +24,10 @@ pub enum Deduction {
     Contradiction,
 }
 
-/// A trait which is used to describe a logical deduction.
-pub trait Reason {
-    /// A description of the logic behind some deductions.
-    fn description(&self) -> Result<String, fmt::Error>;
-}
-
-/// A structure representing the inference that the grid is in contradiction.
-pub struct Contradiction { }
-
-impl Reason for Contradiction {
-    fn description(&self) -> Result<String, fmt::Error> {
-        Ok("The grid is in contradiction".to_string())
-    }
-}
-
 /// A move that can be made on the grid.
 pub struct Move {
     /// The placements or eliminations resulting from this move.
     deductions: Vec<Deduction>,
-    /// The reason for the deductions.
-    reason: Box<Reason>,
-}
-
-impl Reason for Move {
-    fn description(&self) -> Result<String, fmt::Error> {
-        self.reason.description()
-    }
 }
 
 /// Find the simplest deduction that can be applied to the grid.
@@ -100,19 +73,13 @@ fn apply_deduction(grid: &mut Grid, deduction: Deduction) -> bool {
 }
 
 /// Solve the grid using the available strategies.
-pub fn solve(grid: &mut Grid, verbose: bool) {
+pub fn solve(grid: &mut Grid) {
     while !is_solved(grid) {
         if let Some(mov) = find_move(grid) {
-            if verbose {
-                println!("\n{}", mov.description().unwrap());
-            }
             for deduction in mov.deductions {
                 if !apply_deduction(grid, deduction) {
                     return;
                 }
-            }
-            if verbose {
-                println!("\n{}", grid);
             }
         } else {
             break;
