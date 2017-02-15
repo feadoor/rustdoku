@@ -15,14 +15,12 @@ pub fn find(grid: &Grid) -> Option<Move> {
     // Rows
     for row in Grid::rows() {
         for &val in Grid::values() {
-            let cells = row.filter(|&ix| grid.has_candidate(ix, val));
-            if cells.len() >= 2 && Grid::same_block(&cells) {
-                let cell = cells.first().unwrap();
-                let eliminations = (Grid::block(cell) & !Grid::row(cell))
-                    .iter()
-                    .filter(|&ix| grid.has_candidate(ix, val))
-                    .map(|ix| Deduction::Elimination(ix, val))
-                    .collect::<Vec<_>>();
+            let cells = grid.cells_with_candidate_in_region(val, row);
+            if cells.len() < 2 { continue; }
+
+            if let Some(block) = Grid::block_containing(&cells) {
+                let eliminations = grid.cells_with_candidate_in_region(val, &(block & !row))
+                    .map(|ix| Deduction::Elimination(ix, val));
 
                 if !eliminations.is_empty() {
                     return Some(Move { deductions: eliminations });
@@ -32,16 +30,14 @@ pub fn find(grid: &Grid) -> Option<Move> {
     }
 
     // Columns
-    for col in Grid::columns() {
+    for column in Grid::columns() {
         for &val in Grid::values() {
-            let cells = col.filter(|&ix| grid.has_candidate(ix, val));
-            if cells.len() >= 2 && Grid::same_block(&cells) {
-                let cell = cells.first().unwrap();
-                let eliminations = (Grid::block(cell) & !Grid::column(cell))
-                    .iter()
-                    .filter(|&ix| grid.has_candidate(ix, val))
-                    .map(|ix| Deduction::Elimination(ix, val))
-                    .collect::<Vec<_>>();
+            let cells = grid.cells_with_candidate_in_region(val, column);
+            if cells.len() < 2 { continue; }
+
+            if let Some(block) = Grid::block_containing(&cells) {
+                let eliminations = grid.cells_with_candidate_in_region(val, &(block & !column))
+                    .map(|ix| Deduction::Elimination(ix, val));
 
                 if !eliminations.is_empty() {
                     return Some(Move { deductions: eliminations });

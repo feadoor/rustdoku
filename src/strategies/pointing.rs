@@ -13,37 +13,26 @@ pub fn find(grid: &Grid) -> Option<Move> {
     // Scan each block, and for each value, check if the positions are limited to a row or column.
     for block in Grid::blocks() {
         for &val in Grid::values() {
-            let cells = block.filter(|&ix| grid.has_candidate(ix, val));
-            if cells.len() >= 2 {
+            let cells = grid.cells_with_candidate_in_region(val, block);
+            if cells.len() < 2 { continue; }
 
-                // Rows
-                if Grid::same_row(&cells) {
-                    let cell = cells.first().unwrap();
-                    let row = Grid::row(cell);
-                    let eliminations = (row & !Grid::block(cell))
-                        .iter()
-                        .filter(|&ix| grid.has_candidate(ix, val))
-                        .map(|ix| Deduction::Elimination(ix, val))
-                        .collect::<Vec<_>>();
+            // Rows
+            if let Some(row) = Grid::row_containing(&cells) {
+                let eliminations = grid.cells_with_candidate_in_region(val, &(row & !block))
+                    .map(|ix| Deduction::Elimination(ix, val));
 
-                    if !eliminations.is_empty() {
-                        return Some(Move { deductions: eliminations });
-                    }
+                if !eliminations.is_empty() {
+                    return Some(Move { deductions: eliminations });
                 }
+            }
 
-                // Columns
-                if Grid::same_column(&cells) {
-                    let cell = cells.first().unwrap();
-                    let col = Grid::column(cell);
-                    let eliminations = (col & !Grid::block(cell))
-                        .iter()
-                        .filter(|&ix| grid.has_candidate(ix, val))
-                        .map(|ix| Deduction::Elimination(ix, val))
-                        .collect::<Vec<_>>();
+            // Columns
+            if let Some(column) = Grid::column_containing(&cells) {
+                let eliminations = grid.cells_with_candidate_in_region(val, &(column & !block))
+                    .map(|ix| Deduction::Elimination(ix, val));
 
-                    if !eliminations.is_empty() {
-                        return Some(Move { deductions: eliminations });
-                    }
+                if !eliminations.is_empty() {
+                    return Some(Move { deductions: eliminations });
                 }
             }
         }

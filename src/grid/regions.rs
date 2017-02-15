@@ -58,23 +58,6 @@ impl Grid {
         &COLSETS[column_idx]
     }
 
-    /// Get a `CellSet` representing the cells in the given block.
-    fn block_int(block_idx: usize) -> &'static CellSet {
-        static BLOCKSETS: [CellSet; 9] = [
-            CellSet { hi: 0x0, lo: 0x1c0e07 },
-            CellSet { hi: 0x0, lo: 0xe07038 },
-            CellSet { hi: 0x0, lo: 0x70381c0 },
-            CellSet { hi: 0x0, lo: 0xe07038000000 },
-            CellSet { hi: 0x0, lo: 0x70381c0000000 },
-            CellSet { hi: 0x0, lo: 0x381c0e00000000 },
-            CellSet { hi: 0x703, lo: 0x81c0000000000000 },
-            CellSet { hi: 0x381c, lo: 0x0e00000000000000 },
-            CellSet { hi: 0x1c0e0, lo: 0x7000000000000000 },
-        ];
-
-        &BLOCKSETS[block_idx]
-    }
-
     /// Get the cells which share a row with the given cell.
     pub fn row(cell_idx: CellIdx) -> &'static CellSet {
         static ROW_INDICES: [usize; 81] = [
@@ -107,23 +90,6 @@ impl Grid {
         ];
 
         Grid::col_int(COLUMN_INDICES[cell_idx])
-    }
-
-    /// Get the cells which share a block with the given cell.
-    pub fn block(cell_idx: CellIdx) -> &'static CellSet {
-        static BLOCK_INDICES: [usize; 81] = [
-            0, 0, 0, 1, 1, 1, 2, 2, 2,
-            0, 0, 0, 1, 1, 1, 2, 2, 2,
-            0, 0, 0, 1, 1, 1, 2, 2, 2,
-            3, 3, 3, 4, 4, 4, 5, 5, 5,
-            3, 3, 3, 4, 4, 4, 5, 5, 5,
-            3, 3, 3, 4, 4, 4, 5, 5, 5,
-            6, 6, 6, 7, 7, 7, 8, 8, 8,
-            6, 6, 6, 7, 7, 7, 8, 8, 8,
-            6, 6, 6, 7, 7, 7, 8, 8, 8,
-        ];
-
-        Grid::block_int(BLOCK_INDICES[cell_idx])
     }
 
     /// All rows for a grid.
@@ -301,18 +267,27 @@ impl Grid {
         &NEIGHBOURS_SETS[cell_idx]
     }
 
-    /// Determine if a group of cells share a row.
-    pub fn same_row(cells: &CellSet) -> bool {
-        Grid::rows().iter().any(|row| row & cells == *cells)
+    /// Return the row which contains all of the given cells.
+    pub fn row_containing(cells: &CellSet) -> Option<&'static CellSet> {
+        for row in Grid::rows() {
+            if row & cells == * cells { return Some(row) }
+        }
+        None
     }
 
-    /// Determine if a group of cells share a column.
-    pub fn same_column(cells: &CellSet) -> bool {
-        Grid::columns().iter().any(|column| column & cells == *cells)
+    /// Return the column which contains all of the given cells.
+    pub fn column_containing(cells: &CellSet) -> Option<&'static CellSet> {
+        for column in Grid::columns() {
+            if column & cells == * cells { return Some(column) }
+        }
+        None
     }
 
-    /// Determine if a group of cells share a block.
-    pub fn same_block(cells: &CellSet) -> bool {
-        Grid::blocks().iter().any(|block| block & cells == *cells)
+    /// Return the block which contains all of the given cells.
+    pub fn block_containing(cells: &CellSet) -> Option<&'static CellSet> {
+        for block in Grid::blocks() {
+            if block & cells == * cells { return Some(block) }
+        }
+        None
     }
 }

@@ -103,6 +103,13 @@ impl CellSet {
     {
         CellSet::from_cells(self.iter().filter(predicate))
     }
+
+    /// Map the indices held in this `CellSet`.
+    pub fn map<B, F>(&self, f: F) -> Vec<B>
+        where F: FnMut(CellIdx) -> B
+    {
+        self.iter().map(f).collect()
+    }
 }
 
 macro_rules! binop_from_ref_ref {
