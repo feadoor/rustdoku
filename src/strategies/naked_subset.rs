@@ -15,10 +15,7 @@ pub fn find(grid: &Grid) -> Option<Move> {
 
     macro_rules! find_subsets {
         ($d: expr, $x: ident) => {
-            let mov = find_with_degree($x, $d);
-            if mov.is_some() {
-                return mov;
-            }
+            if let Some(mov) = find_with_degree($x, $d) { return Some(mov); }
         }
     }
 
@@ -57,7 +54,7 @@ fn get_deductions(grid: &Grid, cells: &CellSet, mut candidates: &CandidateSet) -
 
     let mut deductions = Vec::new();
 
-    for cell in Grid::common_neighbours(cells).iter() {
+    for cell in cells.common_neighbours().iter() {
         for val in candidates.iter() {
             if grid.has_candidate(cell, val) {
                 deductions.push(Deduction::Elimination(cell, val));

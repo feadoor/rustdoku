@@ -4,6 +4,8 @@ use std::ops::{BitAnd, BitOr, BitXor, Not};
 use std::ops::{BitAndAssign, BitOrAssign, BitXorAssign};
 
 use grid::CellIdx;
+use grid::Grid;
+use grid::regions::Region;
 
 /// A set of cells from a Sudoku grid, represented internally as a bitmask.
 #[derive(Eq, PartialEq, Debug, Clone)]
@@ -100,6 +102,30 @@ impl CellSet {
     /// Get the first cell from this `CellSet`.
     pub fn first(&self) -> Option<CellIdx> {
         self.iter().next()
+    }
+
+    /// Get a `CellSet` representing all common neighbours of the given cells.
+    pub fn common_neighbours(&self) -> CellSet {
+        self.iter().fold(CellSet::full(), |acc, cell| acc & Grid::neighbours(cell))
+    }
+
+    /// Get a `CellSet` representing the union of all neighbours of the given cells.
+    pub fn all_neighbours(&self) -> CellSet {
+        self.iter().fold(CellSet::empty(), |acc, cell| acc & Grid::neighbours(cell))
+    }
+
+    /// Group the cells in this `CellSet` by rows / columns / blocks.
+    pub fn group_by(&self, variety: Region) -> Vec<CellSet> {
+        let regions = match variety {
+            Row => Grid::rows(),
+            Column => Grid::columns(),
+            Block => Grid::blocks(),
+        };
+
+        regions.iter()
+            .map(|cells| cells & self)
+            .filter(|&cells| !cells.is_empty())
+            .collect()
     }
 
     /// Filter this `CellSet` by a predicate.

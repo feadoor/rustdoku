@@ -4,6 +4,7 @@ use itertools::Itertools;
 
 use grid::Grid;
 use grid::cellset::CellSet;
+use grid::regions::Region;
 use strategies::{Deduction, Move};
 
 /// Return, if one exists, a deduction based on a fish.
@@ -18,10 +19,7 @@ use strategies::{Deduction, Move};
 pub fn find(grid: &Grid) -> Option<Move> {
     macro_rules! find_fish {
         ($d: expr, $x :ident) => {
-            let mov = fish_of_degree($x, $d);
-            if mov.is_some() {
-                return mov;
-            }
+            if let Some(mov) = fish_of_degree($x, $d) { return Some(mov); }
         }
     }
 
@@ -35,73 +33,41 @@ pub fn find(grid: &Grid) -> Option<Move> {
 /// Find a fish elimination of the given degree.
 fn fish_of_degree(grid: &Grid, degree: usize) -> Option<Move> {
     for &value in Grid::values() {
-        let mov = find_standard_fish(grid, degree, value, true);
-        if mov.is_some() {
-            return mov;
-        }
-        let mov = find_standard_fish(grid, degree, value, false);
-        if mov.is_some() {
-            return mov;
-        }
+        if let Some(mov) = find_standard_fish(grid, degree, value, true) { return Some(mov); }
+        if let Some(mov) = find_standard_fish(grid, degree, value, false) { return Some(mov); }
     }
 
     for &value in Grid::values() {
-        let mov = find_finned_fish(grid, degree, value, true);
-        if mov.is_some() {
-            return mov;
-        }
-        let mov = find_finned_fish(grid, degree, value, false);
-        if mov.is_some() {
-            return mov;
-        }
+        if let Some(mov) = find_finned_fish(grid, degree, value, true) { return Some(mov); }
+        if let Some(mov) = find_finned_fish(grid, degree, value, false) { return Some(mov); }
     }
 
     None
 }
 
 /// Find, if it exists, a fish of the given degree with the given value in the grid.
-fn find_standard_fish(grid: &Grid, degree: usize, value: usize, rows: bool) -> Option<Move> {
+fn find_standard_fish(grid: &Grid, degree: usize, value: usize, base_type: Region) -> Option<Move> {
 
     // Generate all possible base sets for this fish.
     let candidate_positions = grid.cells_with_candidate(value);
-    let base_sets: Vec<CellSet> = if rows {
-        Grid::rows().iter()
-            .map(|set| set & &candidate_positions)
-            .filter(|x| !x.is_empty())
-            .collect()
-    } else {
-        Grid::columns().iter()
-            .map(|set| set & &candidate_positions)
-            .filter(|x| !x.is_empty())
-            .collect()
-    };
+    let base_sets = candidate_positions.group_by(base_type);
 
     // Iterate over all possible choices for the base rows / columns, looking for fish without fin
     // cells.
     for bases in base_sets.iter().combinations(degree) {
-        let mut cover_sets = Vec::new();
-        let mut base_union = CellSet::empty();
-        let mut cover_union = CellSet::empty();
 
         // Build up the cover sets for this set of potential base sets.
-        for &base in &bases {
-            base_union |= base;
-
-            let new_cells = base & !&cover_union;
-            for cell in new_cells.iter() {
-                let new_cover = if rows {
-                    Grid::column(cell) & &candidate_positions
-                } else {
-                    Grid::row(cell) & &candidate_positions
-                };
-                cover_union |= &new_cover;
-                cover_sets.push(new_cover);
-            }
-        }
+        let base_union = bases.iter().fold(CellSet::empty(), |acc, &base| acc | base);
+        let cover_sets = match base_type {
+            Row => Grid::intersecting_columns(&base_union),
+            Column => Grid::intersecting_rows(&base_union),
+            Block => unreachable!(),
+        };
 
         // If we have exactly as many cover sets as base sets, then we might have some fishy
         // eliminations on our hands.
         if cover_sets.len() == degree {
+            let cover_union = cover_sets.iter().fold(CellSet::empty(), |acc, &cover| acc | cover);
             let eliminations = cover_union & !base_union;
             let deductions: Vec<_> = eliminations.iter()
                 .map(|ix| Deduction::Elimination(ix, value))
@@ -116,54 +82,34 @@ fn find_standard_fish(grid: &Grid, degree: usize, value: usize, rows: bool) -> O
 }
 
 /// Find, if it exists, a fish of the given degree with the given value in the grid.
-fn find_finned_fish(grid: &Grid, degree: usize, value: usize, rows: bool) -> Option<Move> {
+fn find_finned_fish(grid: &Grid, degree: usize, value: usize, base_type: Region) -> Option<Move> {
 
     // Generate all possible base sets for this fish.
     let candidate_positions = grid.cells_with_candidate(value);
-    let base_sets: Vec<CellSet> = if rows {
-        Grid::rows().iter()
-            .map(|set| set & &candidate_positions)
-            .filter(|x| !x.is_empty())
-            .collect()
-    } else {
-        Grid::columns().iter()
-            .map(|set| set & &candidate_positions)
-            .filter(|x| !x.is_empty())
-            .collect()
-    };
+    let base_sets = candidate_positions.group_by(base_type);
 
     // Iterate over all potential choices for the base sets, looking for finned fish.
     for bases in base_sets.iter().combinations(degree) {
-        let mut cover_sets = Vec::new();
-        let mut base_union = CellSet::empty();
-        let mut cover_union = CellSet::empty();
 
         // Build up the cover sets for this set of potential base sets.
-        for &base in &bases {
-            base_union |= base;
-
-            let new_cells = base & !&cover_union;
-            for cell in new_cells.iter() {
-                let new_cover = if rows {
-                    Grid::column(cell) & &candidate_positions
-                } else {
-                    Grid::row(cell) & &candidate_positions
-                };
-                cover_union |= &new_cover;
-                cover_sets.push(new_cover);
-            }
-        }
+        let base_union = bases.iter().fold(CellSet::empty(), |acc, &base| acc | base);
+        let cover_sets = match base_type {
+            Row => Grid::intersecting_columns(&base_union),
+            Column => Grid::intersecting_rows(&base_union),
+            Block => unreachable!(),
+        };
 
         // Iterate over all possible choices of covers that leave fins and check for eliminations.
         let num_fins = cover_sets.len() - degree;
         if num_fins == 1 || num_fins == 2 {
             let mut deductions = Vec::new();
             let mut elims = CellSet::empty();
+
+            let cover_union = cover_sets.iter().fold(CellSet::empty(), |acc, &cover| acc | cover);
             for ex_covers in cover_sets.iter().combinations(num_fins) {
-                let uncovered = ex_covers.iter().fold(CellSet::empty(), |acc, &x| acc | x);
+                let uncovered = ex_covers.iter().fold(CellSet::empty(), |acc, &&x| acc | x);
                 let fins = &base_union & &uncovered;
-                let fin_neighbours = fins.iter()
-                    .fold(!CellSet::empty(), |acc, x| acc & Grid::neighbours(x));
+                let fin_neighbours = fins.all_neighbours();
                 let eliminations = fin_neighbours & &cover_union & !(uncovered | &base_union);
                 for cell_idx in eliminations.iter() {
                     deductions.push(Deduction::Elimination(cell_idx, value));

@@ -15,10 +15,7 @@ pub fn find(grid: &Grid) -> Option<Move> {
 
     macro_rules! find_subsets {
         ($d: expr, $x: ident) => {
-            let mov = find_with_degree($x, $d);
-            if mov.is_some() {
-                return mov;
-            }
+            if let Some(mov) = find_with_degree($x, $d) { return Some(mov); }
         }
     }
 
