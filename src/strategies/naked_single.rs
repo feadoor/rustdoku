@@ -17,8 +17,8 @@ pub fn find(grid: &Grid) -> Option<Move> {
             return Some(Move { deductions: vec![Deduction::Contradiction] })
         }
 
+        // Check for a naked single deduction.
         if grid.num_candidates(cell_idx) == 1 {
-            // Get a human-readable description of the deduction and return it.
             let val = grid.first_candidate(cell_idx);
             let deduction = Deduction::Placement(cell_idx, val);
             return Some(Move { deductions: vec![deduction] });

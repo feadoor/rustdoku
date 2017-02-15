@@ -11,17 +11,16 @@ pub fn find(grid: &Grid) -> Option<Move> {
 
     // Scan each region, and check if any value has only one position.
     for region in Grid::regions() {
-        for &val in Grid::values() {
-            let cells = region.filter(|&ix| grid.has_candidate(ix, val));
+        for val in grid.missing_values_from_region(region) {
+            let cells = grid.cells_with_candidate_in_region(val, region);
 
             // There might be no place for this value, which is a contradiction. Check.
-            if cells.len() == 0 && !region.iter().any(|ix| grid.value(ix) == Some(val)) {
+            if cells.len() == 0 {
                 return Some(Move { deductions: vec![Deduction::Contradiction] });
             }
 
-            // If we get here then all is well, so continue as normal.
+            // Otherwise check for a hidden single deduction.
             if cells.len() == 1 {
-                // Get a human-readable description of the deduction and return it.
                 let cell_idx = cells.first().unwrap();
                 let deduction = Deduction::Placement(cell_idx, val);
                 return Some(Move { deductions: vec![deduction] });

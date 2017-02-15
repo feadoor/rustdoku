@@ -186,4 +186,32 @@ impl Grid {
 
         CellSet::from_cells(cells)
     }
+
+    /// Get the empty cells from the given region.
+    pub fn empty_cells_in_region(&self, region: &CellSet) -> CellSet {
+        region.filter(|&ix| self.is_empty(ix))
+    }
+
+    /// Get the cells in the given region which contain a particular value.
+    pub fn cells_with_candidate_in_region(&self, value: usize, region: &CellSet) -> CellSet {
+        region.filter(|&ix| self.has_candidate(ix, value))
+    }
+
+    /// Get the values which are missing from this region.
+    pub fn missing_values_from_region(&self, region: &CellSet) -> Vec<usize> {
+
+        // Iterate over the cells in the region and keep track of those which appear.
+        let mut missing_vals = [true; 9];
+        for cell_idx in region.iter() {
+            if let Some(val) = self.value(cell_idx) {
+                missing_vals[val - 1] = false;
+            }
+        }
+
+        // Return a vector containing those which have not yet appeared.
+        missing_vals.iter()
+            .enumerate()
+            .filter_map(|(ix, &missing)| if missing { Some(ix + 1) } else { None })
+            .collect()
+    }
 }
