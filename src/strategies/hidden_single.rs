@@ -11,7 +11,7 @@ pub fn find(grid: &Grid) -> Option<Move> {
 
     // Scan each region, and check if any value has only one position.
     for region in Grid::regions() {
-        for val in grid.missing_values_from_region(region) {
+        for val in grid.missing_values_from_region(region).iter() {
             let cells = grid.cells_with_candidate_in_region(val, region);
 
             // There might be no place for this value, which is a contradiction. Check.

@@ -1,5 +1,6 @@
 //! A structure representing a Sudoku grid.
 
+pub mod candidateset;
 mod cell;
 pub mod cellset;
 mod regions;
@@ -8,16 +9,19 @@ use std::fmt;
 
 use ansi_term::Style;
 
+use self::candidateset::CandidateSet;
 use self::cell::Cell;
 use self::cellset::CellSet;
 
 /// A named type for indexing cells of the grid.
 pub type CellIdx = usize;
+/// A named type for candidates of a cell.
+pub type Candidate = usize;
 
 /// Errors that can arise when reading in a grid from a string representation.
 pub enum GridParseError {
     BadLength,
-    Contradiction(usize),
+    Contradiction(CellIdx),
 }
 
 impl fmt::Display for GridParseError {
@@ -74,10 +78,8 @@ impl fmt::Display for Grid {
                 }
                 None => {
                     let mut written = 0;
-                    let mut candidates = self.candidates(cell_idx);
-                    while candidates != 0 {
-                        try!(write!(f, "{}", candidates.trailing_zeros() as usize + 1));
-                        candidates &= candidates - 1;
+                    for candidate in self.candidates(cell_idx).iter() {
+                        try!(write!(f, "{}", candidate));
                         written += 1;
                     }
                     try!(write!(f, "{}", String::from_utf8(vec![b' '; max_c - written]).unwrap()));
@@ -120,10 +122,10 @@ impl Grid {
         for (idx, digit) in givens.as_bytes().iter().enumerate() {
             let val = digit - b'0';
             if val > 0 && val <= 9 as u8 {
-                if !grid.has_candidate(idx, val as usize) {
+                if !grid.has_candidate(idx, val as Candidate) {
                     return Err(GridParseError::Contradiction(idx));
                 } else {
-                    grid.place_value(idx, val as usize);
+                    grid.place_value(idx, val as Candidate);
                 }
             }
         }
@@ -133,7 +135,7 @@ impl Grid {
 
     /// Place a value in the cell at the given index, propagating to its neighbours to remove the
     /// value from their candidates.
-    pub fn place_value(&mut self, cell_idx: CellIdx, val: usize) {
+    pub fn place_value(&mut self, cell_idx: CellIdx, val: Candidate) {
 
         // Place the value in the cell.
         self.cells[cell_idx].set_value(val);
@@ -145,12 +147,12 @@ impl Grid {
     }
 
     /// Remove a value from the cell at the given index.
-    pub fn eliminate_value(&mut self, cell_idx: CellIdx, val: usize) {
+    pub fn eliminate_value(&mut self, cell_idx: CellIdx, val: Candidate) {
         self.cells[cell_idx].remove_candidate(val);
     }
 
     /// Check if the given cell has a particular candidate.
-    pub fn has_candidate(&self, cell_idx: CellIdx, val: usize) -> bool {
+    pub fn has_candidate(&self, cell_idx: CellIdx, val: Candidate) -> bool {
         self.cells[cell_idx].has_candidate(val)
     }
 
@@ -160,7 +162,7 @@ impl Grid {
     }
 
     /// Get the first candidate that can go in the given cell.
-    pub fn first_candidate(&self, cell_idx: CellIdx) -> usize {
+    pub fn first_candidate(&self, cell_idx: CellIdx) -> Option<Candidate> {
         self.cells[cell_idx].first_candidate()
     }
 
@@ -170,17 +172,17 @@ impl Grid {
     }
 
     /// Get the value in the given cell.
-    pub fn value(&self, cell_idx: CellIdx) -> Option<usize> {
+    pub fn value(&self, cell_idx: CellIdx) -> Option<Candidate> {
         self.cells[cell_idx].value()
     }
 
     /// Get the candidates for the given cell.
-    pub fn candidates(&self, cell_idx: CellIdx) -> usize {
+    pub fn candidates(&self, cell_idx: CellIdx) -> CandidateSet {
         self.cells[cell_idx].candidates()
     }
 
     /// Get the cells which are able to hold a particular value.
-    pub fn cells_with_candidate(&self, value: usize) -> CellSet {
+    pub fn cells_with_candidate(&self, value: Candidate) -> CellSet {
         let cells = Grid::cells().iter()
             .filter_map(|ix| if self.has_candidate(ix, value) { Some(ix) } else { None });
 
@@ -193,25 +195,27 @@ impl Grid {
     }
 
     /// Get the cells in the given region which contain a particular value.
-    pub fn cells_with_candidate_in_region(&self, value: usize, region: &CellSet) -> CellSet {
+    pub fn cells_with_candidate_in_region(&self, value: Candidate, region: &CellSet) -> CellSet {
         region.filter(|&ix| self.has_candidate(ix, value))
     }
 
+    /// Get the values which appear in a given region.
+    pub fn values_in_region(&self, region: &CellSet) -> CandidateSet {
+        CandidateSet::from_candidates(region.iter().filter_map(|ix| self.value(ix)))
+    }
+
     /// Get the values which are missing from this region.
-    pub fn missing_values_from_region(&self, region: &CellSet) -> Vec<usize> {
+    pub fn missing_values_from_region(&self, region: &CellSet) -> CandidateSet {
+        !self.values_in_region(region)
+    }
 
-        // Iterate over the cells in the region and keep track of those which appear.
-        let mut missing_vals = [true; 9];
-        for cell_idx in region.iter() {
-            if let Some(val) = self.value(cell_idx) {
-                missing_vals[val - 1] = false;
-            }
-        }
+    /// Get all candidates which appear in at least one of the given cells.
+    pub fn all_candidates_from_region(&self, region: &CellSet) -> CandidateSet {
+        region.iter().fold(CandidateSet::empty(), |acc, ix| acc | self.candidates(ix))
+    }
 
-        // Return a vector containing those which have not yet appeared.
-        missing_vals.iter()
-            .enumerate()
-            .filter_map(|(ix, &missing)| if missing { Some(ix + 1) } else { None })
-            .collect()
+    /// Get all cells in the given region which contain any of the given candidates.
+    pub fn all_cells_with_candidates_in_region(&self, candidates: &CandidateSet, region: &CellSet) -> CellSet {
+        region.filter(|&ix| candidates.iter().any(|val| self.has_candidate(ix, val)))
     }
 }

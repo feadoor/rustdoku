@@ -27,11 +27,11 @@ impl Iterator for CellSetIterator {
 
     fn next(&mut self) -> Option<CellIdx> {
         if self.lo != 0 {
-            let next = self.lo.trailing_zeros() as usize;
+            let next = self.lo.trailing_zeros() as CellIdx;
             self.lo &= self.lo - 1;
             Some(next)
         } else if self.hi != 0 {
-            let next = self.hi.trailing_zeros() as usize + 64;
+            let next = self.hi.trailing_zeros() as CellIdx + 64;
             self.hi &= self.hi - 1;
             Some(next)
         } else {
@@ -52,6 +52,11 @@ impl CellSet {
     /// Create an empty `CellSet`.
     pub fn empty() -> CellSet {
         CellSet::new(0x0, 0x0)
+    }
+
+    /// Create a `CellSet` holding all cells.
+    pub fn full() -> CellSet {
+        !CellSet::empty()
     }
 
     /// Create a `CellSet` containing the cells contained in the given iterator.

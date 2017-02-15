@@ -3,6 +3,7 @@
 use itertools::Itertools;
 
 use grid::Grid;
+use grid::candidateset::CandidateSet;
 use grid::cellset::CellSet;
 use strategies::{Deduction, Move};
 
@@ -33,28 +34,14 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
 
     // Iterate over all regions of the grid and all tuples of values.
     for region in Grid::regions() {
+        for candidates in grid.missing_values_from_region(region).iter().combinations(degree).map(CandidateSet::from_candidates) {
 
-        // Find the values which are missing from the region.
-        let mut missing_vals = [true; 9];
-        for cell in region.iter() {
-            if let Some(val) = grid.value(cell) {
-                missing_vals[val - 1] = false;
-            }
-        }
-
-        // Iterate over tuples of the missing values.
-        for tuple in missing_vals.iter()
-            .enumerate()
-            .filter(|&(_, &x)| x)
-            .map(|(idx, _)| idx + 1)
-            .combinations(degree)
-        {
             // Take the collection of cells which contain these candidates.
-            let cells = region.filter(|&ix| tuple.iter().any(|&val| grid.has_candidate(ix, val)));
+            let cells = grid.all_cells_with_candidates_in_region(&candidates, region);
 
             // Check if the candidates appear in the right number of cells.
             if cells.len() == degree {
-                let deductions = get_deductions(grid, &tuple, &cells);
+                let deductions = get_deductions(grid, &candidates, &cells);
                 if !deductions.is_empty() {
                     return Some(Move { deductions: deductions });
                 }
@@ -66,20 +53,16 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
 }
 
 /// Build up the deductions resulting from a hidden subset.
-fn get_deductions(grid: &Grid, tuple: &[usize], cells: &CellSet) -> Vec<Deduction> {
+fn get_deductions(grid: &Grid, candidates: &CandidateSet, cells: &CellSet) -> Vec<Deduction> {
 
     let mut deductions = Vec::new();
 
     // Eliminate all other candidates from this group of cells.
     for cell in cells.iter() {
-        let mut candidates = grid.candidates(cell);
-        while candidates != 0 {
-            let val = candidates.trailing_zeros() as usize + 1;
-            if tuple.iter().find(|&&x| x == val).is_none() {
-                let deduction = Deduction::Elimination(cell, val);
-                deductions.push(deduction);
-            }
-            candidates &= candidates - 1;
+        let eliminations = grid.candidates(cell) & !candidates;
+        for candidate in eliminations.iter() {
+            let deduction = Deduction::Elimination(cell, candidate);
+            deductions.push(deduction);
         }
     }
 

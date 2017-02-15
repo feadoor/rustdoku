@@ -1,38 +1,32 @@
 //! A structure representing a single cell within a Sudoku grid.
 
-// Bitmasks representing the possible candidates 1-9 that can be in a cell.
-static MASKS: [usize; 10] = [
-    0x000, 0x001, 0x002, 0x004, 0x008,
-    0x010, 0x020, 0x040, 0x080, 0x100,
-];
-
-// A bitmask representing a cell with all candidates filled.
-static MASK_ALL: usize = 0x1ff;
+use grid::Candidate;
+use grid::candidateset::CandidateSet;
 
 /// A single cell within a Sudoku grid.
 #[derive(Copy, Clone)]
 pub struct Cell {
     /// The value, if any, held by this `Cell`.
-    value: Option<usize>,
+    value: Option<Candidate>,
     /// The potential values that this `Cell` can hold.
-    candidates: usize,
+    candidates: CandidateSet,
 }
 
 impl Cell {
     /// Create a new `Cell` with no value, and with all candidates possible.
     pub fn new() -> Cell {
-        Cell { value: None, candidates: MASK_ALL }
+        Cell { value: None, candidates: CandidateSet::full() }
     }
 
     /// Get the value currently held in this `Cell`.
-    pub fn value(&self) -> Option<usize> {
+    pub fn value(&self) -> Option<Candidate> {
         self.value
     }
 
     /// Set the value currently held in this `Cell`.
-    pub fn set_value(&mut self, val: usize) {
+    pub fn set_value(&mut self, val: Candidate) {
         self.value = Some(val);
-        self.candidates = 0x0;
+        self.candidates = CandidateSet::singleton(val);
     }
 
     /// Determine whether this `Cell` is empty or not.
@@ -41,27 +35,27 @@ impl Cell {
     }
 
     /// Get the candidates which are allowed in this `Cell`.
-    pub fn candidates(&self) -> usize {
+    pub fn candidates(&self) -> CandidateSet {
         self.candidates
     }
 
     /// Remove a potential candidate from this `Cell`.
-    pub fn remove_candidate(&mut self, val: usize) {
-        self.candidates &= !MASKS[val];
+    pub fn remove_candidate(&mut self, val: Candidate) {
+        self.candidates.remove_candidate(val);
     }
 
     /// Check if a given candidate is allowed in this `Cell`.
-    pub fn has_candidate(&self, val: usize) -> bool {
-        self.candidates & MASKS[val] != 0
+    pub fn has_candidate(&self, val: Candidate) -> bool {
+        self.candidates.has_candidate(val)
     }
 
     /// Get the first candidate that can go in this `Cell`.
-    pub fn first_candidate(&self) -> usize {
-        self.candidates.trailing_zeros() as usize + 1
+    pub fn first_candidate(&self) -> Option<Candidate> {
+        self.candidates.first()
     }
 
     /// Get the number of candidates that can go in this `Cell`.
     pub fn num_candidates(&self) -> usize {
-        self.candidates.count_ones() as usize
+        self.candidates.len()
     }
 }

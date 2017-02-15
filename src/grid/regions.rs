@@ -267,6 +267,11 @@ impl Grid {
         &NEIGHBOURS_SETS[cell_idx]
     }
 
+    /// Get a `CellSet` representing all common neighbours of the given cells.
+    pub fn common_neighbours(cells: &CellSet) -> CellSet {
+        cells.iter().fold(CellSet::full(), |acc, cell| acc & Grid::neighbours(cell))
+    }
+
     /// Return the row which contains all of the given cells.
     pub fn row_containing(cells: &CellSet) -> Option<&'static CellSet> {
         for row in Grid::rows() {

@@ -21,7 +21,7 @@ pub fn find(grid: &Grid) -> Option<Move> {
             }
 
             // Return the deduction arising from the full house.
-            let val = grid.first_candidate(cell_idx);
+            let val = grid.first_candidate(cell_idx).unwrap();
             let deduction = Deduction::Placement(cell_idx, val);
             return Some(Move { deductions: vec![deduction] });
         }
