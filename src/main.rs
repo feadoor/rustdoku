@@ -55,7 +55,6 @@ mod tests {
             let line = line_it.unwrap();
             if !line.is_empty() && !line.starts_with("//") {
                 let mut grid = Grid::from_str(&line).unwrap();
-                println!("{}", grid);
                 solve(&mut grid);
                 check_grid(&grid);
             }

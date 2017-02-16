@@ -2,7 +2,7 @@
 
 use itertools::Itertools;
 
-use grid::{CellIdx, Grid};
+use grid::Grid;
 use grid::candidateset::CandidateSet;
 use grid::cellset::CellSet;
 use strategies::{Deduction, Move};
@@ -50,7 +50,7 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
 }
 
 /// Build up the deductions resulting from a naked subset.
-fn get_deductions(grid: &Grid, cells: &CellSet, mut candidates: &CandidateSet) -> Vec<Deduction> {
+fn get_deductions(grid: &Grid, cells: &CellSet, candidates: &CandidateSet) -> Vec<Deduction> {
 
     let mut deductions = Vec::new();
 

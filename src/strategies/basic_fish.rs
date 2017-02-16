@@ -3,8 +3,9 @@
 use itertools::Itertools;
 
 use grid::Grid;
+use grid::Region;
+use grid::Region::*;
 use grid::cellset::CellSet;
-use grid::regions::Region;
 use strategies::{Deduction, Move};
 
 /// Return, if one exists, a deduction based on a fish.
@@ -17,6 +18,7 @@ use strategies::{Deduction, Move};
 /// which are not covered by the columns (rows). Then only the eliminated digits which can also
 /// see all fin cells are valid.
 pub fn find(grid: &Grid) -> Option<Move> {
+
     macro_rules! find_fish {
         ($d: expr, $x :ident) => {
             if let Some(mov) = fish_of_degree($x, $d) { return Some(mov); }
@@ -32,14 +34,15 @@ pub fn find(grid: &Grid) -> Option<Move> {
 
 /// Find a fish elimination of the given degree.
 fn fish_of_degree(grid: &Grid, degree: usize) -> Option<Move> {
+
     for &value in Grid::values() {
-        if let Some(mov) = find_standard_fish(grid, degree, value, true) { return Some(mov); }
-        if let Some(mov) = find_standard_fish(grid, degree, value, false) { return Some(mov); }
+        if let Some(mov) = find_standard_fish(grid, degree, value, Row) { return Some(mov); }
+        if let Some(mov) = find_standard_fish(grid, degree, value, Column) { return Some(mov); }
     }
 
     for &value in Grid::values() {
-        if let Some(mov) = find_finned_fish(grid, degree, value, true) { return Some(mov); }
-        if let Some(mov) = find_finned_fish(grid, degree, value, false) { return Some(mov); }
+        if let Some(mov) = find_finned_fish(grid, degree, value, Row) { return Some(mov); }
+        if let Some(mov) = find_finned_fish(grid, degree, value, Column) { return Some(mov); }
     }
 
     None
@@ -50,7 +53,7 @@ fn find_standard_fish(grid: &Grid, degree: usize, value: usize, base_type: Regio
 
     // Generate all possible base sets for this fish.
     let candidate_positions = grid.cells_with_candidate(value);
-    let base_sets = candidate_positions.group_by(base_type);
+    let base_sets: Vec<CellSet> = candidate_positions.group_by(base_type);
 
     // Iterate over all possible choices for the base rows / columns, looking for fish without fin
     // cells.
@@ -67,7 +70,7 @@ fn find_standard_fish(grid: &Grid, degree: usize, value: usize, base_type: Regio
         // If we have exactly as many cover sets as base sets, then we might have some fishy
         // eliminations on our hands.
         if cover_sets.len() == degree {
-            let cover_union = cover_sets.iter().fold(CellSet::empty(), |acc, &cover| acc | cover);
+            let cover_union = cover_sets.iter().fold(CellSet::empty(), |acc, &cover| acc | cover) & &candidate_positions;
             let eliminations = cover_union & !base_union;
             let deductions: Vec<_> = eliminations.iter()
                 .map(|ix| Deduction::Elimination(ix, value))
@@ -86,7 +89,7 @@ fn find_finned_fish(grid: &Grid, degree: usize, value: usize, base_type: Region)
 
     // Generate all possible base sets for this fish.
     let candidate_positions = grid.cells_with_candidate(value);
-    let base_sets = candidate_positions.group_by(base_type);
+    let base_sets: Vec<CellSet> = candidate_positions.group_by(base_type);
 
     // Iterate over all potential choices for the base sets, looking for finned fish.
     for bases in base_sets.iter().combinations(degree) {
@@ -103,17 +106,14 @@ fn find_finned_fish(grid: &Grid, degree: usize, value: usize, base_type: Region)
         let num_fins = cover_sets.len() - degree;
         if num_fins == 1 || num_fins == 2 {
             let mut deductions = Vec::new();
-            let mut elims = CellSet::empty();
 
-            let cover_union = cover_sets.iter().fold(CellSet::empty(), |acc, &cover| acc | cover);
+            let cover_union = cover_sets.iter().fold(CellSet::empty(), |acc, &cover| acc | cover) & &candidate_positions;
             for ex_covers in cover_sets.iter().combinations(num_fins) {
                 let uncovered = ex_covers.iter().fold(CellSet::empty(), |acc, &&x| acc | x);
                 let fins = &base_union & &uncovered;
-                let fin_neighbours = fins.all_neighbours();
-                let eliminations = fin_neighbours & &cover_union & !(uncovered | &base_union);
-                for cell_idx in eliminations.iter() {
+                let fin_neighbours = fins.common_neighbours();
+                for cell_idx in (fin_neighbours & &cover_union & !(uncovered | &base_union)).iter() {
                     deductions.push(Deduction::Elimination(cell_idx, value));
-                    elims |= &eliminations;
                 }
             }
 

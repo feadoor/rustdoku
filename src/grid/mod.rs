@@ -18,6 +18,14 @@ pub type CellIdx = usize;
 /// A named type for candidates of a cell.
 pub type Candidate = usize;
 
+/// The types of region occurring in the grid.
+#[derive(Copy, Clone)]
+pub enum Region {
+    Row,
+    Column,
+    Block,
+}
+
 /// Errors that can arise when reading in a grid from a string representation.
 pub enum GridParseError {
     BadLength,
@@ -189,6 +197,11 @@ impl Grid {
         CellSet::from_cells(cells)
     }
 
+    /// Get the cells which have a particular number of candidates.
+    pub fn cells_with_n_candidates(&self, n: usize) -> CellSet {
+        CellSet::full().filter(|&ix| self.num_candidates(ix) == n)
+    }
+
     /// Get the empty cells from the given region.
     pub fn empty_cells_in_region(&self, region: &CellSet) -> CellSet {
         region.filter(|&ix| self.is_empty(ix))
@@ -217,5 +230,15 @@ impl Grid {
     /// Get all cells in the given region which contain any of the given candidates.
     pub fn all_cells_with_candidates_in_region(&self, candidates: &CandidateSet, region: &CellSet) -> CellSet {
         region.filter(|&ix| candidates.iter().any(|val| self.has_candidate(ix, val)))
+    }
+
+    /// Get all cells in the given region with a particular number of candidates.
+    pub fn cells_with_n_candidates_in_region(&self, n: usize, region: &CellSet) -> CellSet {
+        region.filter(|&ix| self.num_candidates(ix) == n)
+    }
+
+    /// Get the cells in the given region which have exactly the given candidates.
+    pub fn cells_with_exact_candidates_in_region(&self, candidates: &CandidateSet, region: &CellSet) -> CellSet {
+        region.filter(|&ix| self.candidates(ix) == *candidates)
     }
 }

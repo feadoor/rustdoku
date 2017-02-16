@@ -6,7 +6,7 @@ use std::ops::{BitAndAssign, BitOrAssign, BitXorAssign};
 use grid::Candidate;
 
 /// A set of possible candidates for a Sudoku.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct CandidateSet {
     mask: usize,
 }
@@ -21,7 +21,9 @@ impl Iterator for CandidateSetIterator {
 
     fn next(&mut self) -> Option<Candidate> {
         if self.mask != 0 {
-            Some(self.mask.trailing_zeros() as Candidate)
+            let next = self.mask.trailing_zeros() as Candidate;
+            self.mask &= self.mask - 1;
+            Some(next)
         } else {
             None
         }
@@ -42,11 +44,6 @@ impl CandidateSet {
     /// Create a `CandidateSet` holding all possible candidates.
     pub fn full() -> CandidateSet {
         !CandidateSet::empty()
-    }
-
-    /// Create a `CandidateSet` holding only a single value.
-    pub fn singleton(value: Candidate) -> CandidateSet {
-        CandidateSet::new(1 << value)
     }
 
     /// Create a `CandidateSet` containing the candidates from the given iterator.

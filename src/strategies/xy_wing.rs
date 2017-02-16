@@ -1,6 +1,8 @@
 //! A definition of the XY-wing strategy.
 
+use grid::CellIdx;
 use grid::Grid;
+use grid::cellset::CellSet;
 use strategies::{Deduction, Move};
 
 /// Return, if one exists, an elimination based on an XY-wing.
@@ -10,27 +12,18 @@ use strategies::{Deduction, Move};
 /// pincers, which have candidates XZ and YZ. Then Z can be eliminated from all cells which can see
 /// both pincers.
 pub fn find(grid: &Grid) -> Option<Move> {
-    // Iterate over bi-value cells of the grid as the pivot.
-    for pivot in Grid::cells().iter().filter(|&ix| grid.num_candidates(ix) == 2) {
-        // Look for possible choices for the first pincer cell.
-        for pincer1 in Grid::neighbours(pivot).iter()
-            .filter(|&ix| grid.num_candidates(ix) == 2 &&
-                          grid.candidates(ix) != grid.candidates(pivot) &&
-                          grid.candidates(ix) & grid.candidates(pivot) != 0)
-        {
-            // Now get a cell that can act as the second pincer.
+
+    // Iterate over bi-value cells of the grid as the pivot and look for pairs of pincer cells.
+    for pivot in grid.cells_with_n_candidates(2).iter() {
+        for pincer1 in pincers(grid, pivot).iter() {
             let candidates = grid.candidates(pincer1) ^ grid.candidates(pivot);
-            for pincer2 in (Grid::neighbours(pivot) & !Grid::neighbours(pincer1)).iter()
-                .filter(|&ix| grid.candidates(ix) == candidates)
-            {
+            for pincer2 in grid.cells_with_exact_candidates_in_region(&candidates, Grid::neighbours(pivot)).iter() {
+
                 // Check for eliminations coming from this wing.
-                let ex_candidate = (grid.candidates(pincer1) & grid.candidates(pincer2))
-                    .trailing_zeros() as usize + 1;
-                let deductions = (Grid::neighbours(pincer1) & Grid::neighbours(pincer2))
-                    .iter()
-                    .filter(|&ix| grid.has_candidate(ix, ex_candidate))
-                    .map(|ix| Deduction::Elimination(ix, ex_candidate))
-                    .collect::<Vec<_>>();
+                let ex_candidate = (grid.candidates(pincer1) & grid.candidates(pincer2)).first().unwrap();
+                let elim_region = Grid::neighbours(pincer1) & Grid::neighbours(pincer2);
+                let deductions = grid.cells_with_candidate_in_region(ex_candidate, &elim_region)
+                    .map(|ix| Deduction::Elimination(ix, ex_candidate));
                 if ! deductions.is_empty() {
                     return Some(Move { deductions: deductions });
                 }
@@ -39,4 +32,11 @@ pub fn find(grid: &Grid) -> Option<Move> {
     }
 
     None
+}
+
+/// Return a `CellSet` consisting of possible pincer cells for the given pivot - that is, bivalue
+/// cells which can see the pivot and which have a candidate in common with it.
+fn pincers(grid: &Grid, pivot: CellIdx) -> CellSet {
+    grid.cells_with_n_candidates_in_region(2, Grid::neighbours(pivot))
+        .filter(|&ix| (grid.candidates(ix) & grid.candidates(pivot)).len() == 1)
 }

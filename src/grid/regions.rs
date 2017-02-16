@@ -3,12 +3,6 @@
 use grid::{CellIdx, Grid};
 use grid::cellset::CellSet;
 
-pub enum Region {
-    Row,
-    Column,
-    Block,
-}
-
 impl Grid {
 
     /// All the values that can be placed in a cell of the grid.
@@ -28,74 +22,6 @@ impl Grid {
         };
 
         &CELLS
-    }
-
-    /// Get a `CellSet` representing the cells in the given row.
-    fn row_int(row_idx: usize) -> &'static CellSet {
-        static ROWSETS: [CellSet; 9] = [
-            CellSet { hi: 0x0, lo: 0x1FF },
-            CellSet { hi: 0x0, lo: 0x3FE00 },
-            CellSet { hi: 0x0, lo: 0x7FC0000 },
-            CellSet { hi: 0x0, lo: 0xFF8000000 },
-            CellSet { hi: 0x0, lo: 0x1FF000000000 },
-            CellSet { hi: 0x0, lo: 0x3FE00000000000 },
-            CellSet { hi: 0x0, lo: 0x7FC0000000000000 },
-            CellSet { hi: 0xFF, lo: 0x8000000000000000 },
-            CellSet { hi: 0x1FF00, lo: 0x0 },
-        ];
-
-        &ROWSETS[row_idx]
-    }
-
-    /// Get a `CellSet` representing the cells in the given column.
-    fn col_int(column_idx: usize) -> &'static CellSet {
-        static COLSETS: [CellSet; 9] = [
-            CellSet { hi: 0x100, lo: 0x8040201008040201 },
-            CellSet { hi: 0x201, lo: 0x0080402010080402 },
-            CellSet { hi: 0x402, lo: 0x0100804020100804 },
-            CellSet { hi: 0x804, lo: 0x0201008040201008 },
-            CellSet { hi: 0x1008, lo: 0x0402010080402010 },
-            CellSet { hi: 0x2010, lo: 0x0804020100804020 },
-            CellSet { hi: 0x4020, lo: 0x1008040201008040 },
-            CellSet { hi: 0x8040, lo: 0x2010080402010080 },
-            CellSet { hi: 0x10080, lo: 0x4020100804020100 },
-        ];
-
-        &COLSETS[column_idx]
-    }
-
-    /// Get the cells which share a row with the given cell.
-    pub fn row(cell_idx: CellIdx) -> &'static CellSet {
-        static ROW_INDICES: [usize; 81] = [
-            0, 0, 0, 0, 0, 0, 0, 0, 0,
-            1, 1, 1, 1, 1, 1, 1, 1, 1,
-            2, 2, 2, 2, 2, 2, 2, 2, 2,
-            3, 3, 3, 3, 3, 3, 3, 3, 3,
-            4, 4, 4, 4, 4, 4, 4, 4, 4,
-            5, 5, 5, 5, 5, 5, 5, 5, 5,
-            6, 6, 6, 6, 6, 6, 6, 6, 6,
-            7, 7, 7, 7, 7, 7, 7, 7, 7,
-            8, 8, 8, 8, 8, 8, 8, 8, 8,
-        ];
-
-        Grid::row_int(ROW_INDICES[cell_idx])
-    }
-
-    /// Get the cells which share a column with the given cell.
-    pub fn column(cell_idx: CellIdx) -> &'static CellSet {
-        static COLUMN_INDICES: [usize; 81] = [
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-            0, 1, 2, 3, 4, 5, 6, 7, 8,
-        ];
-
-        Grid::col_int(COLUMN_INDICES[cell_idx])
     }
 
     /// All rows for a grid.
@@ -305,10 +231,5 @@ impl Grid {
     /// Get the columns which intersect the given `CellSet`.
     pub fn intersecting_columns(cells: &CellSet) -> Vec<&'static CellSet> {
         Grid::columns().iter().filter(|&column| !((column & cells).is_empty())).collect()
-    }
-
-    /// Get the blocks which intersect the given `CellSet`.
-    pub fn intersecting_blocks(cells: &CellSet) -> Vec<&'static CellSet> {
-        Grid::blocks().iter().filter(|&block| !((block & cells).is_empty())).collect()
     }
 }
