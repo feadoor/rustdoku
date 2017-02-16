@@ -34,7 +34,7 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
         for candidates in grid.missing_values_from_region(region).iter().combinations(degree).map(CandidateSet::from_candidates) {
 
             // Take the collection of cells which contain these candidates.
-            let cells = grid.all_cells_with_candidates_in_region(&candidates, region);
+            let cells = grid.cells_with_candidates_in_region(&candidates, region);
 
             // Check if the candidates appear in the right number of cells.
             if cells.len() == degree {

@@ -10,6 +10,7 @@ mod hidden_subset;
 mod basic_fish;
 mod xy_wing;
 mod xyz_wing;
+mod w_wing;
 
 use grid::{CellIdx, Grid};
 
@@ -52,6 +53,7 @@ fn find_move(grid: &Grid) -> Option<Move> {
     search!(basic_fish, grid);
     search!(xy_wing, grid);
     search!(xyz_wing, grid);
+    search!(w_wing, grid);
 
     None
 }

@@ -105,6 +105,15 @@ impl CellSet {
         self.iter().next()
     }
 
+    /// Determine whether this `CellSet` contains a particular cell or not.
+    pub fn contains(&self, cell: CellIdx) -> bool {
+        match cell {
+            0...63 => self.lo & (1 << cell) != 0,
+            64...81 => self.hi & (1 << (cell - 64)) != 0,
+            _ => unreachable!(),
+        }
+    }
+
     /// Get a `CellSet` representing all common neighbours of the given cells.
     pub fn common_neighbours(&self) -> CellSet {
         self.iter().fold(CellSet::full(), |acc, cell| acc & Grid::neighbours(cell))

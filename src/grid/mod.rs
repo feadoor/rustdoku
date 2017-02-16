@@ -202,6 +202,16 @@ impl Grid {
         CellSet::full().filter(|&ix| self.num_candidates(ix) == n)
     }
 
+    /// Determine if a particular value has been placed in the given region.
+    pub fn value_placed_in_region(&self, value: Candidate, region: &CellSet) -> bool {
+        region.iter().any(|ix| self.value(ix) == Some(value))
+    }
+
+    /// Determine if a particular candidate appears in the given region.
+    pub fn candidate_in_region(&self, candidate: Candidate, region: &CellSet) -> bool {
+        region.iter().any(|ix| self.candidates(ix).has_candidate(candidate))
+    }
+
     /// Get the empty cells from the given region.
     pub fn empty_cells_in_region(&self, region: &CellSet) -> CellSet {
         region.filter(|&ix| self.is_empty(ix))
@@ -228,7 +238,7 @@ impl Grid {
     }
 
     /// Get all cells in the given region which contain any of the given candidates.
-    pub fn all_cells_with_candidates_in_region(&self, candidates: &CandidateSet, region: &CellSet) -> CellSet {
+    pub fn cells_with_candidates_in_region(&self, candidates: &CandidateSet, region: &CellSet) -> CellSet {
         region.filter(|&ix| candidates.iter().any(|val| self.has_candidate(ix, val)))
     }
 
