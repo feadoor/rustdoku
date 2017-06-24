@@ -68,42 +68,42 @@ impl fmt::Display for Grid {
         let dashes = String::from_utf8(vec![b'-'; 3 * max_c + 2]).unwrap();
         let row_sep = (0..3).map(|_| "+".to_string() + &dashes).collect::<String>() + "+";
 
-        try!(write!(f, "{}", row_sep));
+        write!(f, "{}", row_sep)?;
 
         // Iterate over every group of three cells in the grid.
         for cell_idx in 0..81 {
 
             // Start each row off with some border.
             if cell_idx % 9 == 0 {
-                try!(write!(f, "\n|"));
+                write!(f, "\n|")?;
             }
 
             // Write either the number in the cell, or all its candidates if there isn't one.
             match self.value(cell_idx) {
                 Some(val) => {
-                    try!(write!(f, "{}", Style::new().bold().paint(format!("{}", val))));
-                    try!(write!(f, "{}", String::from_utf8(vec![b' '; max_c - 1]).unwrap()));
+                    write!(f, "{}", Style::new().bold().paint(format!("{}", val)))?;
+                    write!(f, "{}", String::from_utf8(vec![b' '; max_c - 1]).unwrap())?;
                 }
                 None => {
                     let mut written = 0;
                     for candidate in self.candidates(cell_idx).iter() {
-                        try!(write!(f, "{}", candidate));
+                        write!(f, "{}", candidate)?;
                         written += 1;
                     }
-                    try!(write!(f, "{}", String::from_utf8(vec![b' '; max_c - written]).unwrap()));
+                    write!(f, "{}", String::from_utf8(vec![b' '; max_c - written]).unwrap())?;
                 }
             }
 
             // If another number comes next, add some space between them. Otherwise, write the
             // next piece of border.
             match (cell_idx + 1) % 3 {
-                0 => try!(write!(f, "|")),
-                _ => try!(write!(f, " ")),
+                0 => write!(f, "|")?,
+                _ => write!(f, " ")?,
             }
 
             // Add the next row separator if needed.
             if (cell_idx + 1) % 27 == 0 {
-                try!(write!(f, "\n{}", row_sep));
+                write!(f, "\n{}", row_sep)?;
             }
         }
 
@@ -128,7 +128,7 @@ impl Grid {
         // Start with an empty grid and fill in all the givens.
         let mut grid = Grid::empty();
         for (idx, digit) in givens.as_bytes().iter().enumerate() {
-            let val = digit - b'0';
+            let val = digit.wrapping_sub(b'0');
             if val > 0 && val <= 9 as u8 {
                 if !grid.has_candidate(idx, val as Candidate) {
                     return Err(GridParseError::Contradiction(idx));
