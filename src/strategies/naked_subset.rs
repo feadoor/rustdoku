@@ -7,26 +7,10 @@ use grid::candidateset::CandidateSet;
 use grid::cellset::CellSet;
 use strategies::{Deduction, Move};
 
-/// Return, if one exists, a deduction based on a naked subset.
+/// Return, if one exists, a naked subset of the given degree.
 ///
 /// A naked subset is when, in a particular region, n cells can only hold, between them, n
 /// different values. Then those values can be eliminated from elsewhere in the region.
-pub fn find(grid: &Grid) -> Option<Move> {
-
-    macro_rules! find_subsets {
-        ($d: expr, $x: ident) => {
-            if let Some(mov) = find_with_degree($x, $d) { return Some(mov); }
-        }
-    }
-
-    find_subsets!(2, grid);
-    find_subsets!(3, grid);
-    find_subsets!(4, grid);
-
-    None
-}
-
-/// Find a naked subset of the given degree in the given region.
 pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
 
     // Iterate over all tuples of empty cells from regions of the grid.

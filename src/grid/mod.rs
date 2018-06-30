@@ -5,6 +5,9 @@ mod cell;
 pub mod cellset;
 mod regions;
 
+use strategies::Deduction;
+use strategies::Deduction::*;
+
 use std::fmt;
 
 use ansi_term::Style;
@@ -159,6 +162,15 @@ impl Grid {
         self.cells[cell_idx].remove_candidate(val);
     }
 
+    /// Apply the given deduction to the grid, returning `true` if the application succeeded.
+    pub fn apply_deduction(&mut self, deduction: Deduction) {
+        match deduction {
+            Placement(cell_idx, val) => self.place_value(cell_idx, val),
+            Elimination(cell_idx, val) => self.eliminate_value(cell_idx, val),
+            Contradiction => {},
+        }
+    }
+
     /// Check if the given cell has a particular candidate.
     pub fn has_candidate(&self, cell_idx: CellIdx, val: Candidate) -> bool {
         self.cells[cell_idx].has_candidate(val)
@@ -167,6 +179,11 @@ impl Grid {
     /// Check if the given cell is empty.
     pub fn is_empty(&self, cell_idx: CellIdx) -> bool {
         self.cells[cell_idx].is_empty()
+    }
+
+    /// Check if the grid is fully solved.
+    pub fn is_solved(&self) -> bool {
+        return Grid::cells().iter().all(|ix| !self.is_empty(ix))
     }
 
     /// Get the first candidate that can go in the given cell.
