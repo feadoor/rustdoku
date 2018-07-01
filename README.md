@@ -11,13 +11,15 @@ Many of these techniques will be infeasible for human solvers, but human solving
 
 # Patterns included so far
 
+Screenshots produced using the free software [HoDoKu](http://hodoku.sourceforge.net/en/index.php)
+
 ## Full house
 
 This occurs when only one cell in a row, column or block remains empty. Although this is subsumed by both other types of single below, it's much easier to spot than the general case.
 
 ![alt tag](images/fullhouse.png)
 
-In this example, there is only one empty cell in the central row, into which the value 4 can be placed.
+In this example, there is only one empty cell in the third column, into which the value 2 can be placed.
 
 ## Hidden single
 
@@ -33,7 +35,7 @@ When a cell can only hold a single value, that value can be placed in the cell.
 
 ![alt tag](images/nakedsingle.png)
 
-In this grid, r5c5 can only take the value 5.
+In this grid, r4c6 can only take the value 7.
 
 ## Pointing
 
@@ -83,7 +85,7 @@ It is not often that a fish works out perfectly - sometimes there are positions 
 
 ![alt tag](images/finnedfish.png)
 
-In this puzzle, there is a finned X-Wing on the digit 7. The 7's within columns 3 and 6 (shown in green) form the base of the fish, and the cover sets are rows 6 and 7. Normally, we could eliminate all the 7's in these rows, but there is a fin in r5c6. This means that only the red elimination is valid, while all the yellow candidates may still be true.
+In this puzzle, there is a finned X-Wing on the digit 7. The 7's within columns 3 and 6 (shown in green) form the base of the fish, and the cover sets are rows 6 and 7. Normally, we could eliminate all the 7's in these rows, but there is a fin in r5c6. This means that only the eliminations which can see the fin are valid, while all the candidates in the rest of the rows may still be true.
 
 ## XY-Wing
 
@@ -91,7 +93,7 @@ The XY-Wing is a pattern involving 3 bi-value cells: the *pivot*, with candidate
 
 ![alt tag](images/xywing.png)
 
-In this grid, the pivot is shown in green and the pincers in yellow. Together, they eliminate 6 from r6c1 and r5c5.
+In this grid, the pivot candidates are shown in green and the pincers in yellow. Together, they eliminate 6 from r6c1 and r5c5.
 
 ## XYZ-Wing
 
@@ -99,4 +101,14 @@ The XYZ-Wing is very similar to the XY-Wing - it differs only in that the pivot 
 
 ![alt tag](images/xyzwing.png)
 
-In this example, the pivot in green and the pincers in yellow contribute to the elimination of 6 from r7c7.
+In this example, the pivot in r7c9 and the pincers in r7c3 and r9c9 contribute to the elimination of 6 from r7c7.
+
+## W-Wing
+
+The W-Wing is a technique that applies when there are two cells, each with exactly the same two candidates A and B. If there is a region such that all possible occurrences of A within that region are within sight of one of these two cells, then it cannot be the case that both the cells contain A - this would leave nowhere to place A in the region!
+
+This means that if we can find such a region, it must be the case that one of the two cells contains B, and so we can eliminate B from all common neighbours of the two cells.
+
+![alt tag](images/wwing.png)
+
+In this example, the bivalue 1/9 cells r1c7 and r2c1 cover all of the candidate 1s in row 3. This means that 9 can be eliminated from r2c7.
