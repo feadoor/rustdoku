@@ -1,18 +1,14 @@
 //! A pure-logic Sudoku solver.
 
-extern crate ansi_term;
-extern crate bit_set;
-extern crate itertools;
+extern crate rustdoku;
 
 use std::io;
 use std::io::BufRead;
 
-mod grid;
-mod solver;
-mod strategies;
-
-use grid::Grid;
-use solver::SolveConfiguration;
+use rustdoku::grid::Grid;
+use rustdoku::solver;
+use rustdoku::solver::SolveConfiguration;
+use rustdoku::strategies;
 
 fn main() {
     let stdin = io::stdin();
