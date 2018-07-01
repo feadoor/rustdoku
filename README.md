@@ -85,7 +85,7 @@ It is not often that a fish works out perfectly - sometimes there are positions 
 
 <img src="images/finnedfish.png" width="450px" />
 
-In this puzzle, there is a finned X-Wing on the digit 7. The 7's within columns 3 and 6 (shown in green) form the base of the fish, and the cover sets are rows 6 and 7. Normally, we could eliminate all the 7's in these rows, but there is a fin in r5c6. This means that only the eliminations which can see the fin are valid, while all the candidates in the rest of the rows may still be true.
+In this puzzle, there is a finned X-Wing on the digit 7. The 7's within columns 3 and 5 (shown in green) form the base of the fish, and the cover sets are rows 6 and 7. Normally, we could eliminate all the 7's in these rows, but there is a fin in r4c5. This means that only the eliminations which can see the fin are valid, while all the candidates in the rest of the rows may still be true.
 
 ## XY-Wing
 
