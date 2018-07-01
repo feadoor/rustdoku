@@ -27,11 +27,27 @@ pub enum Deduction {
 }
 
 /// A move that can be made on the grid.
+#[derive(Clone)]
 pub struct Move {
     /// The placements or eliminations resulting from this move.
     pub deductions: Vec<Deduction>,
     /// A short description of the move that identifies it to the savvy solver.
     pub description: String,
+}
+
+impl Move {
+    pub fn with_strategy(self, strategy: Strategy) -> AnnotatedMove {
+        AnnotatedMove { mov: self, strategy }
+    }
+}
+
+/// A move, along with the associated strategy that discovered it.
+#[derive(Clone)]
+pub struct AnnotatedMove {
+    /// The move itself.
+    pub mov: Move,
+    /// The strategy that was used to find the move.
+    pub strategy: Strategy,
 }
 
 /// The different strategies available to the solver.
@@ -75,8 +91,8 @@ pub const ALL_STRATEGIES: &'static [Strategy] = &[
 ];
 
 /// Find a deduction arising from the chosen strategy.
-pub fn find_move(grid: &Grid, strategy: Strategy) -> Option<Move> {
-    match strategy {
+pub fn find_move(grid: &Grid, strategy: Strategy) -> Option<AnnotatedMove> {
+    (match strategy {
         Strategy::FullHouse => full_house::find(&grid),
         Strategy::HiddenSingle => hidden_single::find(&grid),
         Strategy::NakedSingle => naked_single::find(&grid),
@@ -89,5 +105,5 @@ pub fn find_move(grid: &Grid, strategy: Strategy) -> Option<Move> {
         Strategy::XYWing => xy_wing::find(&grid),
         Strategy::XYZWing => xyz_wing::find(&grid),
         Strategy::WWing => w_wing::find(&grid),
-    }
+    }).map(|x| x.with_strategy(strategy))
 }

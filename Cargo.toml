@@ -3,6 +3,10 @@ name = "rustdoku"
 version = "0.1.0"
 authors = ["Sam Cappleman-Lynes <sam.capplemanlynes@gmail.com>"]
 
+[[bin]]
+name = "solve"
+path = "src/solve.rs"
+
 [dependencies]
 ansi_term = "0.9.0"
 bit-set = "0.4.0"
