@@ -93,7 +93,7 @@ The XY-Wing is a pattern involving 3 bi-value cells: the *pivot*, with candidate
 
 <img src="images/xywing.png" width="450px" />
 
-In this grid, the pivot candidates are shown in green and the pincers in yellow. Together, they eliminate 6 from r6c1 and r5c5.
+In this grid, the pivot candidates are shown in green and the pincers in blue. Together, they eliminate 6 from r6c1 and r5c5.
 
 ## XYZ-Wing
 
