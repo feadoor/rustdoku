@@ -51,6 +51,29 @@ pub enum Strategy {
     WWing,
 }
 
+pub const ALL_STRATEGIES: &'static [Strategy] = &[
+    Strategy::FullHouse,
+    Strategy::HiddenSingle,
+    Strategy::NakedSingle,
+    Strategy::Pointing,
+    Strategy::Claiming,
+    Strategy::NakedSubset(2),
+    Strategy::HiddenSubset(2),
+    Strategy::NakedSubset(3),
+    Strategy::HiddenSubset(3),
+    Strategy::NakedSubset(4),
+    Strategy::HiddenSubset(4),
+    Strategy::Fish(2),
+    Strategy::Fish(3),
+    Strategy::FinnedFish(2),
+    Strategy::FinnedFish(3),
+    Strategy::Fish(4),
+    Strategy::FinnedFish(4),
+    Strategy::XYWing,
+    Strategy::XYZWing,
+    Strategy::WWing,
+];
+
 /// Find a deduction arising from the chosen strategy.
 pub fn find_move(grid: &Grid, strategy: Strategy) -> Option<Move> {
     match strategy {
