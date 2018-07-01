@@ -16,14 +16,23 @@ pub fn find(grid: &Grid) -> Option<Move> {
 
             // There might be no place for this value, which is a contradiction. Check.
             if cells.len() == 0 {
-                return Some(Move { deductions: vec![Deduction::Contradiction] });
+                return Some(Move {
+                    deductions: vec![Deduction::Contradiction],
+                    description: format!(
+                        "Contradiction! No space for {} in {}",
+                        val, Grid::region_name(region)
+                    ),
+                });
             }
 
             // Otherwise check for a hidden single deduction.
             if cells.len() == 1 {
                 let cell_idx = cells.first().unwrap();
                 let deduction = Deduction::Placement(cell_idx, val);
-                return Some(Move { deductions: vec![deduction] });
+                return Some(Move {
+                    deductions: vec![deduction],
+                    description: format!("Hidden single {} in {}", val, Grid::region_name(region)),
+                });
             }
         }
     }

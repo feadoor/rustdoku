@@ -17,13 +17,26 @@ pub fn find(grid: &Grid) -> Option<Move> {
 
             // If the puzzle was invalid, then we could have a cell with no candidates. Check.
             if grid.num_candidates(cell_idx) == 0 {
-                return Some(Move { deductions: vec![Deduction::Contradiction] });
+                return Some(Move {
+                    deductions: vec![Deduction::Contradiction],
+                    description: format!(
+                        "Contradiction! No candidates remain for {}",
+                        Grid::cell_name(cell_idx)
+                    ),
+                });
             }
 
             // Return the deduction arising from the full house.
             let val = grid.first_candidate(cell_idx).unwrap();
             let deduction = Deduction::Placement(cell_idx, val);
-            return Some(Move { deductions: vec![deduction] });
+            return Some(Move {
+                deductions: vec![deduction],
+                description: format!(
+                    "Full House - {} is the last cell in {}",
+                    Grid::cell_name(cell_idx),
+                    Grid::region_name(region),
+                ),
+            });
         }
     }
 

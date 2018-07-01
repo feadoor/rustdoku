@@ -14,14 +14,23 @@ pub fn find(grid: &Grid) -> Option<Move> {
 
         // Also put in a check for cells that have no candidates remaining.
         if grid.num_candidates(cell_idx) == 0 && grid.is_empty(cell_idx) {
-            return Some(Move { deductions: vec![Deduction::Contradiction] })
+            return Some(Move {
+                deductions: vec![Deduction::Contradiction],
+                description: format!(
+                    "Contradiction! No candidates remain for {}",
+                    Grid::cell_name(cell_idx)
+                ),
+            })
         }
 
         // Check for a naked single deduction.
         if grid.num_candidates(cell_idx) == 1 {
             let val = grid.first_candidate(cell_idx).unwrap();
             let deduction = Deduction::Placement(cell_idx, val);
-            return Some(Move { deductions: vec![deduction] });
+            return Some(Move {
+                deductions: vec![deduction],
+                description: format!("Naked single {} in {}", val, Grid::cell_name(cell_idx)),
+            });
         }
     }
 

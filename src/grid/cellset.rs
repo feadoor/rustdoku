@@ -14,7 +14,7 @@ pub struct CellSet {
     /// The high order bits of the bitmask.
     pub hi: u64,
     /// The low order bits of the bitmask.
-    pub lo: u64
+    pub lo: u64,
 }
 
 /// A structure capable of iterating over the cells held in a `CellSet`.
@@ -43,6 +43,8 @@ impl Iterator for CellSetIterator {
     }
 }
 
+
+
 impl CellSet {
     /// Create a new `CellSet` with the high and low order bitmasks set to the given values.
     pub fn new(hi: u64, lo: u64) -> CellSet {
@@ -63,9 +65,7 @@ impl CellSet {
     }
 
     /// Create a `CellSet` containing the cells contained in the given iterator.
-    pub fn from_cells<I>(cells: I) -> CellSet
-        where I: IntoIterator<Item = CellIdx>
-    {
+    pub fn from_cells<I: IntoIterator<Item = CellIdx>>(cells: I) -> CellSet {
         let mut lo = 0x0;
         let mut hi = 0x0;
         for cell in cells {

@@ -24,7 +24,10 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
             if candidates.len() as usize == degree {
                 let deductions = get_deductions(grid, &cells, &candidates);
                 if !deductions.is_empty() {
-                    return Some(Move { deductions: deductions });
+                    return Some(Move {
+                        deductions: deductions,
+                        description: format!("Naked {} in {}", candidates, Grid::region_name(region)),
+                    });
                 }
             }
         }

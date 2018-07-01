@@ -16,6 +16,7 @@ mod w_wing;
 use grid::{CellIdx, Grid};
 
 /// The different types of deduction that can be made on a grid.
+#[derive(Copy, Clone)]
 pub enum Deduction {
     /// Indicates that the given value can be placed in the cell at the given index.
     Placement(CellIdx, usize),
@@ -29,6 +30,8 @@ pub enum Deduction {
 pub struct Move {
     /// The placements or eliminations resulting from this move.
     pub deductions: Vec<Deduction>,
+    /// A short description of the move that identifies it to the savvy solver.
+    pub description: String,
 }
 
 /// The different strategies available to the solver.

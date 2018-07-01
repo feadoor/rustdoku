@@ -25,7 +25,13 @@ pub fn find(grid: &Grid) -> Option<Move> {
                 let deductions = grid.cells_with_candidate_in_region(ex_candidate, &elim_region)
                     .map(|ix| Deduction::Elimination(ix, ex_candidate));
                 if ! deductions.is_empty() {
-                    return Some(Move { deductions: deductions });
+                    return Some(Move {
+                        deductions: deductions,
+                        description: format!(
+                            "XY-wing with pivot {} and pincers {}, {}",
+                            Grid::cell_name(pivot), Grid::cell_name(pincer1), Grid::cell_name(pincer2)
+                        ),
+                    });
                 }
             }
         }

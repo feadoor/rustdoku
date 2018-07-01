@@ -61,7 +61,17 @@ fn find_finned_fish(grid: &Grid, degree: usize, value: usize, base_type: Region)
             }
 
             if !deductions.is_empty() {
-                return Some(Move { deductions: deductions });
+                return Some(Move {
+                    deductions: deductions,
+                    description: format!(
+                        "Finned fish on {}s in ({})", value,
+                        (match base_type {
+                            Row => Grid::intersecting_rows(&base_union),
+                            Column => Grid::intersecting_columns(&base_union),
+                            Block => unreachable!(),
+                        }).iter().map(|&x| Grid::region_name(x)).collect::<Vec<String>>().join(", ")
+                    ),
+                });
             }
         }
     }

@@ -5,6 +5,8 @@ use std::ops::{BitAndAssign, BitOrAssign, BitXorAssign};
 
 use grid::Candidate;
 
+use std::fmt;
+
 /// A set of possible candidates for a Sudoku.
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct CandidateSet {
@@ -27,6 +29,12 @@ impl Iterator for CandidateSetIterator {
         } else {
             None
         }
+    }
+}
+
+impl fmt::Display for CandidateSet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({})", self.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", "))
     }
 }
 

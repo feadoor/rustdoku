@@ -28,14 +28,26 @@ pub fn find(grid: &Grid) -> Option<Move> {
             if !grid.value_placed_in_region(candidate1, &unseen_cells) && !grid.candidate_in_region(candidate1, &unseen_cells) {
                 let deductions = get_deductions(grid, cell1, cell2, candidate2);
                 if !deductions.is_empty() {
-                    return Some(Move{ deductions: deductions });
+                    return Some(Move{
+                        deductions: deductions,
+                        description: format!(
+                            "W-wing between cells ({}, {}) and {}s in {}",
+                            Grid::cell_name(cell1), Grid::cell_name(cell2), candidate1, Grid::region_name(region)
+                        ),
+                    });
                 }
             }
 
             if !grid.value_placed_in_region(candidate2, &unseen_cells) && !grid.candidate_in_region(candidate2, &unseen_cells) {
                 let deductions = get_deductions(grid, cell1, cell2, candidate1);
                 if !deductions.is_empty() {
-                    return Some(Move{ deductions: deductions });
+                    return Some(Move{
+                        deductions: deductions,
+                        description: format!(
+                            "W-wing between cells ({}, {}) and {}s in {}",
+                            Grid::cell_name(cell1), Grid::cell_name(cell2), candidate2, Grid::region_name(region)
+                        ),
+                    });
                 }
             }
         }

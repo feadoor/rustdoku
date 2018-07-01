@@ -16,23 +16,20 @@ pub fn find(grid: &Grid) -> Option<Move> {
             let cells = grid.cells_with_candidate_in_region(val, block);
             if cells.len() < 2 { continue; }
 
-            // Rows
-            if let Some(row) = Grid::row_containing(&cells) {
-                let eliminations = grid.cells_with_candidate_in_region(val, &(row & !block))
+            let opt_int = Grid::row_containing(&cells).or(Grid::column_containing(&cells));
+            if opt_int.is_some() {
+                let intersection = opt_int.unwrap();
+                let eliminations = grid.cells_with_candidate_in_region(val, &(intersection & !block))
                     .map(|ix| Deduction::Elimination(ix, val));
 
                 if !eliminations.is_empty() {
-                    return Some(Move { deductions: eliminations });
-                }
-            }
-
-            // Columns
-            if let Some(column) = Grid::column_containing(&cells) {
-                let eliminations = grid.cells_with_candidate_in_region(val, &(column & !block))
-                    .map(|ix| Deduction::Elimination(ix, val));
-
-                if !eliminations.is_empty() {
-                    return Some(Move { deductions: eliminations });
+                    return Some(Move {
+                        deductions: eliminations,
+                        description: format!(
+                            "Pointing {}s in {} eliminate further {}s in {}",
+                            val, Grid::region_name(block), val, Grid::region_name(intersection),
+                        )
+                    });
                 }
             }
         }
