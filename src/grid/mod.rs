@@ -144,6 +144,10 @@ impl Grid {
         Ok(grid)
     }
 
+    pub fn from_clues(givens: &[usize]) -> Result<Grid, GridParseError> {
+        Grid::from_str(&givens.iter().map(|x| x.to_string()).collect::<String>())
+    }
+
     /// Place a value in the cell at the given index, propagating to its neighbours to remove the
     /// value from their candidates.
     pub fn place_value(&mut self, cell_idx: CellIdx, val: Candidate) {

@@ -6,3 +6,4 @@ authors = ["Sam Cappleman-Lynes <sam.capplemanlynes@gmail.com>"]
 [dependencies]
 ansi_term = "0.9.0"
 itertools = "0.5.7"
+rand = "0.5.3"

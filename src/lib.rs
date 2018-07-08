@@ -1,5 +1,6 @@
 extern crate ansi_term;
 extern crate itertools;
+extern crate rand;
 
 pub mod generator;
 pub mod grid;
