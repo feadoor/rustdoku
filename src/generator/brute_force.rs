@@ -776,7 +776,6 @@ struct BruteForceSolver {
     finished: bool,
 
     random: bool,
-    rng: ThreadRng,
 
     board: BoardState,
     board_stack: Vec<BoardState>,
@@ -794,7 +793,6 @@ impl BruteForceSolver {
             invalid: false,
             finished: false,
             random: false,
-            rng: thread_rng(),
             board: BoardState::empty(),
             board_stack: Vec::new(),
             saved_solution: None,
@@ -909,7 +907,7 @@ impl BruteForceSolver {
     fn get_best_cell_to_guess(&mut self) -> Option<Cell> {
         if self.random {
             let cells: Vec<_> = (0..CELLS).filter(|&cell| self.board.cells[cell] != NO_DIGITS).collect();
-            self.rng.choose(&cells).map(|x| *x)
+            thread_rng().choose(&cells).map(|x| *x)
         } else {
             let (mut best_cell, mut best_digits) = (0, DIGITS + 1);
             for cell in 0..CELLS {
@@ -927,7 +925,7 @@ impl BruteForceSolver {
     fn get_guess_for_cell(&mut self, cell: Cell) -> Guess {
         let cell_mask = self.board.cells[cell];
         let (guess_mask, leftovers) = if self.random {
-            let &guess_mask = self.rng.choose(POSSIBLE_GUESSES_FOR_MASK[cell_mask]).unwrap();
+            let &guess_mask = thread_rng().choose(POSSIBLE_GUESSES_FOR_MASK[cell_mask]).unwrap();
             let leftovers = cell_mask ^ guess_mask;
             (guess_mask, leftovers)
         } else {
@@ -952,6 +950,7 @@ impl BruteForceSolver {
     fn backtrack(&mut self) {
         if !self.board_stack.is_empty() {
             self.board = self.board_stack.pop().unwrap().clone();
+            self.placement_queue.clear();
             let guess = self.guess_stack.pop().unwrap();
             if DIGITS_IN_MASK[guess.remaining] > 1 {
                 self.board.cells[guess.cell] = guess.remaining;

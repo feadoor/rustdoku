@@ -3,10 +3,8 @@
 extern crate rustdoku;
 
 use rustdoku::generator;
-use rustdoku::grid::Grid;
 
 fn main() {
-    let cells = vec![0; 81];
-    let solution = generator::brute_force::get_random_solution(&cells).unwrap();
-    println!("{}", Grid::from_clues(&solution).unwrap());
+    let clues = generator::generate_puzzle();
+    println!("{}", clues.iter().map(|x| x.to_string()).collect::<String>());
 }
