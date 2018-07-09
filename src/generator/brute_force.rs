@@ -733,12 +733,20 @@ pub fn has_unique_solution(clues: &[usize]) -> bool {
 }
 
 pub fn get_random_solution() -> Vec<usize> {
-    get_random_solution_from_clues(&[0; CELLS]).unwrap()
+    let (mut clues, mut first_row) = (vec![0; CELLS], vec![1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    thread_rng().shuffle(&mut first_row);
+    for (cell, &clue) in first_row.iter().enumerate() { clues[cell] = clue; }
+
+    loop {
+        let solution = get_random_solution_from_clues(&[0; CELLS], 100_000);
+        if solution.is_some() { return solution.unwrap(); }
+    }
 }
 
-pub fn get_random_solution_from_clues(clues: &[usize]) -> Option<Vec<usize>> {
+pub fn get_random_solution_from_clues(clues: &[usize], max_steps: usize) -> Option<Vec<usize>> {
     let mut solver = BruteForceSolver::init_from_clues(clues);
     solver.use_random();
+    solver.set_max_steps(max_steps);
     solver.run(1).solution
 }
 
@@ -787,6 +795,8 @@ struct BruteForceSolver {
 
     placement_queue: Vec<Placement>,
     guess_stack: Vec<Guess>,
+    steps: usize,
+    max_steps: usize,
 }
 
 impl BruteForceSolver {
@@ -802,6 +812,8 @@ impl BruteForceSolver {
             saved_solution: None,
             placement_queue: Vec::new(),
             guess_stack: Vec::new(),
+            steps: 0,
+            max_steps: usize::max_value(),
         };
 
         for (cell, &clue) in clues.iter().enumerate() {
@@ -815,6 +827,10 @@ impl BruteForceSolver {
 
     fn use_random(&mut self) {
         self.random = true;
+    }
+
+    fn set_max_steps(&mut self, max_steps: usize) {
+        self.max_steps = max_steps;
     }
 
     fn run(&mut self, max_solutions: usize) -> BruteForceResult {
@@ -941,11 +957,16 @@ impl BruteForceSolver {
     }
 
     fn guess(&mut self) {
-        if let Some(best_cell) = self.get_best_cell_to_guess() {
-            let guess = self.get_guess_for_cell(best_cell);
-            self.board_stack.push(self.board.clone());
-            self.guess_stack.push(guess);
-            self.enqueue_placement(best_cell, guess.mask);
+        if self.steps < self.max_steps {
+            if let Some(best_cell) = self.get_best_cell_to_guess() {
+                let guess = self.get_guess_for_cell(best_cell);
+                self.board_stack.push(self.board.clone());
+                self.guess_stack.push(guess);
+                self.steps += 1;
+                self.enqueue_placement(best_cell, guess.mask);
+            } else {
+                self.invalid = true;
+            }
         } else {
             self.invalid = true;
         }

@@ -35,16 +35,14 @@ pub fn generate_minimal_symmetric_puzzle() -> Vec<usize> {
     solution
 }
 
-pub fn generate_puzzle_with_pattern(pattern: &[bool]) -> Option<Vec<usize>> {
-    let max_retries = 1_000;
-    for _ in 0..max_retries {
+pub fn generate_puzzle_with_pattern(pattern: &[bool]) -> Vec<usize> {
+    loop {
         let mut solution = brute_force::get_random_solution();
         for (cell, val) in pattern.iter().enumerate() {
             if !val { solution[cell] = 0; }
         }
         if brute_force::has_unique_solution(&solution) {
-            return Some(solution);
+            return solution;
         }
     }
-    None
 }
