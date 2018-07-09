@@ -732,7 +732,11 @@ pub fn has_unique_solution(clues: &[usize]) -> bool {
     solver.run(2).solution_count == 1
 }
 
-pub fn get_random_solution(clues: &[usize]) -> Option<Vec<usize>> {
+pub fn get_random_solution() -> Vec<usize> {
+    get_random_solution_from_clues(&[0; CELLS]).unwrap()
+}
+
+pub fn get_random_solution_from_clues(clues: &[usize]) -> Option<Vec<usize>> {
     let mut solver = BruteForceSolver::init_from_clues(clues);
     solver.use_random();
     solver.run(1).solution
