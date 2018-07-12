@@ -5,13 +5,13 @@ use itertools::Itertools;
 use grid::Grid;
 use grid::candidateset::CandidateSet;
 use grid::cellset::CellSet;
-use strategies::{Deduction, Move};
+use strategies::{Deduction, Step};
 
 /// Return, if one exists, a naked subset of the given degree.
 ///
 /// A naked subset is when, in a particular region, n cells can only hold, between them, n
 /// different values. Then those values can be eliminated from elsewhere in the region.
-pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
+pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Step> {
 
     // Iterate over all tuples of empty cells from regions of the grid.
     for region in Grid::regions() {
@@ -20,14 +20,10 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
             // Take the union of the candidates found in these cells.
             let candidates = grid.all_candidates_from_region(&cells);
 
-            // Check if the right number of candidates appear.
-            if candidates.len() as usize == degree {
-                let deductions = get_deductions(grid, &cells, &candidates);
-                if !deductions.is_empty() {
-                    return Some(Move {
-                        deductions: deductions,
-                        description: format!("Naked {} in {}", candidates, Grid::region_name(region)),
-                    });
+            // Check if the right number of candidates appear and if any eliminations will occur.
+            if candidates.len() == degree {
+                if cells.common_neighbours().iter().any(|cell| !(grid.candidates(cell) & candidates).is_empty()) {
+                    return Some(Step::NakedSubset { region: *region, cells: cells, values: candidates });
                 }
             }
         }
@@ -36,8 +32,17 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
     None
 }
 
+/// Get the deductions arising from the hidden single on the given grid.
+pub fn get_deductions(grid: &Grid, naked_subset: &Step) -> Vec<Deduction> {
+    match *naked_subset {
+        Step::NakedSubset { region: _, cells, values } => _get_deductions(grid, &cells, &values),
+        _ => unreachable!(),
+    }
+}
+
+
 /// Build up the deductions resulting from a naked subset.
-fn get_deductions(grid: &Grid, cells: &CellSet, candidates: &CandidateSet) -> Vec<Deduction> {
+fn _get_deductions(grid: &Grid, cells: &CellSet, candidates: &CandidateSet) -> Vec<Deduction> {
 
     let mut deductions = Vec::new();
 

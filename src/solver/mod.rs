@@ -4,8 +4,7 @@ mod solve_configuration;
 
 use grid::Grid;
 
-use strategies;
-use strategies::AnnotatedMove;
+use strategies::Step;
 use strategies::Deduction::*;
 
 pub use self::solve_configuration::SolveConfiguration;
@@ -23,37 +22,37 @@ pub struct SolveDetails {
     /// The result of the solve.
     pub result: SolveResult,
     /// The path taken through the solve.
-    pub moves: Vec<AnnotatedMove>,
+    pub steps: Vec<Step>,
 }
 
 /// Solve, as far as possible, the grid, using the allowed strategies.
 pub fn solve(grid: &mut Grid, config: &SolveConfiguration) -> SolveDetails {
-    let mut moves = Vec::new();
+    let mut steps = Vec::new();
     while !grid.is_solved() {
-        if let Some(mov) = find_move(grid, config) {
-            moves.push(mov.clone());
-            for deduction in mov.mov.deductions {
+        if let Some(step) = find_step(grid, config) {
+            for deduction in step.get_deductions(grid) {
                 if let Contradiction = deduction {
-                    return SolveDetails { result: SolveResult::Contradiction, moves };
+                    return SolveDetails { result: SolveResult::Contradiction, steps };
                 } else {
                     grid.apply_deduction(deduction);
                 }
             }
+            steps.push(step);
         } else {
-            return SolveDetails { result: SolveResult::InsufficientStrategies, moves };
+            return SolveDetails { result: SolveResult::InsufficientStrategies, steps };
         }
     }
 
-    SolveDetails { result: SolveResult::Solved, moves }
+    SolveDetails { result: SolveResult::Solved, steps }
 }
 
-/// Find the next move using the allowed set of strategies.
-fn find_move(grid: &Grid, config: &SolveConfiguration) -> Option<AnnotatedMove> {
+/// Find the next step using the allowed set of strategies.
+fn find_step(grid: &Grid, config: &SolveConfiguration) -> Option<Step> {
 
     for &strategy in config.strategies() {
-        let mov = strategies::find_move(grid, strategy);
-        if mov.is_some() {
-            return mov;
+        let step = strategy.find_step(&grid);
+        if step.is_some() {
+            return step;
         }
     }
 

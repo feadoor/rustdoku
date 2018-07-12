@@ -5,13 +5,13 @@ use itertools::Itertools;
 use grid::Grid;
 use grid::candidateset::CandidateSet;
 use grid::cellset::CellSet;
-use strategies::{Deduction, Move};
+use strategies::{Deduction, Step};
 
 /// Return, if one exists, a hidden subset of the given degree.
 ///
 /// A hidden subset is when, in a particular region, n values can only appear in n cells. Then
 /// other values can be eliminated from those cells.
-pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
+pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Step> {
 
     // Iterate over all regions of the grid and all tuples of values.
     for region in Grid::regions() {
@@ -20,14 +20,10 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
             // Take the collection of cells which contain these candidates.
             let cells = grid.cells_with_candidates_in_region(&candidates, region);
 
-            // Check if the candidates appear in the right number of cells.
+            // Check if the candidates appear in the right number of cells and if any eliminations will occur.
             if cells.len() == degree {
-                let deductions = get_deductions(grid, &candidates, &cells);
-                if !deductions.is_empty() {
-                    return Some(Move {
-                        deductions: deductions,
-                        description: format!("Hidden {} in {}", candidates, Grid::region_name(region)),
-                    });
+                if cells.iter().any(|cell| !(grid.candidates(cell) & !candidates).is_empty()) {
+                    return Some(Step::HiddenSubset { region: *region, cells: cells, values: candidates });
                 }
             }
         }
@@ -36,8 +32,16 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Move> {
     None
 }
 
-/// Build up the deductions resulting from a hidden subset.
-fn get_deductions(grid: &Grid, candidates: &CandidateSet, cells: &CellSet) -> Vec<Deduction> {
+/// Get the deductions arising from the hidden subset on the given grid.
+pub fn get_deductions(grid: &Grid, hidden_subset: &Step) -> Vec<Deduction> {
+    match *hidden_subset {
+        Step::HiddenSubset { region: _, cells, values } => _get_deductions(grid, &cells, &values),
+        _ => unreachable!(),
+    }
+}
+
+
+fn _get_deductions(grid: &Grid, cells: &CellSet, candidates: &CandidateSet) -> Vec<Deduction> {
 
     let mut deductions = Vec::new();
 

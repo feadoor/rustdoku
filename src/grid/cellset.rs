@@ -9,7 +9,7 @@ use grid::Region;
 use grid::Region::*;
 
 /// A set of cells from a Sudoku grid, represented internally as a bitmask.
-#[derive(Eq, PartialEq, Debug, Clone)]
+#[derive(Eq, PartialEq, Debug, Clone, Copy)]
 pub struct CellSet {
     /// The high order bits of the bitmask.
     pub hi: u64,
@@ -42,8 +42,6 @@ impl Iterator for CellSetIterator {
         }
     }
 }
-
-
 
 impl CellSet {
     /// Create a new `CellSet` with the high and low order bitmasks set to the given values.
@@ -112,6 +110,10 @@ impl CellSet {
             64...81 => self.hi & (1 << (cell - 64)) != 0,
             _ => unreachable!(),
         }
+    }
+
+    pub fn union(cell_sets: &[&CellSet]) -> CellSet {
+        cell_sets.iter().fold(CellSet::empty(), |acc, &curr| acc | curr)
     }
 
     /// Get a `CellSet` representing all common neighbours of the given cells.

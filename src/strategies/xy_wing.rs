@@ -1,17 +1,16 @@
 //! A definition of the XY-wing strategy.
 
-use grid::CellIdx;
-use grid::Grid;
+use grid::{Grid, CellIdx};
 use grid::cellset::CellSet;
-use strategies::{Deduction, Move};
+use strategies::{Deduction, Step};
 
-/// Return, if one exists, an elimination based on an XY-wing.
+/// Return, if one exists, an XY-wing.
 ///
 /// An XY-wing is a pattern comprising 3 bi-value cells. Suppose we have a cell, called the pivot,
 /// with two candidates XY. Suppose that there are two cells within sight of the pivot, called the
 /// pincers, which have candidates XZ and YZ. Then Z can be eliminated from all cells which can see
 /// both pincers.
-pub fn find(grid: &Grid) -> Option<Move> {
+pub fn find(grid: &Grid) -> Option<Step> {
 
     // Iterate over bi-value cells of the grid as the pivot and look for pairs of pincer cells.
     for pivot in grid.cells_with_n_candidates(2).iter() {
@@ -22,22 +21,24 @@ pub fn find(grid: &Grid) -> Option<Move> {
                 // Check for eliminations coming from this wing.
                 let ex_candidate = (grid.candidates(pincer1) & grid.candidates(pincer2)).first().unwrap();
                 let elim_region = Grid::neighbours(pincer1) & Grid::neighbours(pincer2);
-                let deductions = grid.cells_with_candidate_in_region(ex_candidate, &elim_region)
-                    .map(|ix| Deduction::Elimination(ix, ex_candidate));
-                if ! deductions.is_empty() {
-                    return Some(Move {
-                        deductions: deductions,
-                        description: format!(
-                            "XY-wing with pivot {} and pincers {}, {}",
-                            Grid::cell_name(pivot), Grid::cell_name(pincer1), Grid::cell_name(pincer2)
-                        ),
-                    });
+                if !grid.cells_with_candidate_in_region(ex_candidate, &elim_region).is_empty() {
+                    return Some(Step::XYWing { pivot, pincer1, pincer2, value: ex_candidate });
                 }
             }
         }
     }
 
     None
+}
+
+/// Get the deductions arising from the XY-wing on the given grid.
+pub fn get_deductions(grid: &Grid, xy_wing: &Step) -> Vec<Deduction> {
+    match *xy_wing {
+        Step::XYWing { pivot: _, pincer1, pincer2, value } => grid
+            .cells_with_candidate_in_region(value, &(Grid::neighbours(pincer1) & Grid::neighbours(pincer2)))
+            .map(|cell| Deduction::Elimination(cell, value)),
+        _ => unreachable!(),
+    }
 }
 
 /// Return a `CellSet` consisting of possible pincer cells for the given pivot - that is, bivalue
