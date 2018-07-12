@@ -18,7 +18,6 @@ use grid::cellset::CellSet;
 use grid::candidateset::CandidateSet;
 
 /// The different types of deduction that can be made on a grid.
-#[derive(Copy, Clone)]
 pub enum Deduction {
     /// Indicates that the given value can be placed in the cell at the given index.
     Placement(CellIdx, usize),
@@ -29,7 +28,6 @@ pub enum Deduction {
 }
 
 /// A step to be taken in the process of solving a given grid.
-#[derive(Clone)]
 pub enum Step {
     NoCandidatesForCell { cell: CellIdx },
     NoPlaceForCandidateInRegion { region: CellSet, value: usize},
