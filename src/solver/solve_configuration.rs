@@ -23,4 +23,10 @@ impl SolveConfiguration {
     pub fn strategies(&self) -> &[Strategy] {
         &self.strategies
     }
+
+    pub fn without_strategies(&self, strategies: &[Strategy]) -> SolveConfiguration {
+        SolveConfiguration::with_strategies(
+            self.strategies.iter().filter(|&x| !strategies.contains(x)).map(|x| *x).collect()
+        )
+    }
 }

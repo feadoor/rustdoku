@@ -35,7 +35,7 @@ pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Step> {
 /// Get the deductions arising from the hidden single on the given grid.
 pub fn get_deductions(grid: &Grid, naked_subset: &Step) -> Vec<Deduction> {
     match *naked_subset {
-        Step::NakedSubset { region: _, cells, values } => _get_deductions(grid, &cells, &values),
+        Step::NakedSubset { cells, values, .. } => _get_deductions(grid, &cells, &values),
         _ => unreachable!(),
     }
 }

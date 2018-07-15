@@ -47,7 +47,7 @@ fn find_fish(grid: &Grid, degree: usize, value: usize, base_type: Region) -> Opt
         if cover_sets.len() == degree {
             let cover_union = CellSet::union(&cover_sets) & &candidate_positions;
             if !(cover_union & !&base_union).is_empty() {
-                return Some(Step::Fish { base_type: base_type, base: base_union, cover: cover_union, value: value });
+                return Some(Step::Fish { degree, base_type, base: base_union, cover: cover_union, value });
             }
         }
     }
@@ -58,7 +58,7 @@ fn find_fish(grid: &Grid, degree: usize, value: usize, base_type: Region) -> Opt
 /// Get the deductions arising from the fish on the given grid.
 pub fn get_deductions(_grid: &Grid, fish: &Step) -> Vec<Deduction> {
     match *fish {
-        Step::Fish { base_type: _, base, cover, value } => (cover & !base)
+        Step::Fish { base, cover, value, .. } => (cover & !base)
             .map(|cell| Deduction::Elimination(cell, value)),
         _ => unreachable!(),
     }
@@ -67,7 +67,7 @@ pub fn get_deductions(_grid: &Grid, fish: &Step) -> Vec<Deduction> {
 /// Get a concise description of this step, to be used in a description of a solution path.
 pub fn get_description(fish: &Step) -> String {
     match *fish {
-        Step::Fish { base_type, base, cover, value } => {
+        Step::Fish { base_type, base, cover, value, .. } => {
             let base_regions = get_base_regions(base_type, &base);
             let cover_regions = get_cover_regions(base_type, &cover);
             format!(

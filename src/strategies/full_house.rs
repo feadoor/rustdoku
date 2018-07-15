@@ -32,7 +32,7 @@ pub fn find(grid: &Grid) -> Option<Step> {
 /// Get the deductions arising from the full house on the given grid.
 pub fn get_deductions(_grid: &Grid, full_house: &Step) -> Vec<Deduction> {
     match *full_house {
-        Step::FullHouse { region: _, cell, value } => vec![ Deduction::Placement(cell, value) ],
+        Step::FullHouse { cell, value, .. } => vec![ Deduction::Placement(cell, value) ],
         _ => unreachable!(),
     }
 }

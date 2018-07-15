@@ -40,8 +40,8 @@ pub enum Step {
     Claiming { region: CellSet, block: CellSet, value: usize, },
     HiddenSubset { region: CellSet, cells: CellSet, values: CandidateSet, },
     NakedSubset { region: CellSet, cells: CellSet, values: CandidateSet, },
-    Fish { base_type: Region, base: CellSet, cover: CellSet, value: usize, },
-    FinnedFish { base_type: Region, base: CellSet, cover: CellSet, fins: CellSet, value: usize, },
+    Fish { degree: usize, base_type: Region, base: CellSet, cover: CellSet, value: usize, },
+    FinnedFish { degree: usize, base_type: Region, base: CellSet, cover: CellSet, fins: CellSet, value: usize, },
     XYWing { pivot: CellIdx, pincer1: CellIdx, pincer2: CellIdx, value: usize, },
     XYZWing { pivot: CellIdx, pincer1: CellIdx, pincer2: CellIdx, value: usize, },
     WWing { pincer1: CellIdx, pincer2: CellIdx, region: CellSet, covered_value: usize, eliminated_value: usize, },
@@ -127,6 +127,26 @@ impl Step {
             ref xy_wing @ Step::XYWing { .. } => xy_wing::get_deductions(&grid, xy_wing),
             ref xyz_wing @ Step::XYZWing { .. } => xyz_wing::get_deductions(&grid, xyz_wing),
             ref w_wing @ Step::WWing { .. } => w_wing::get_deductions(&grid, w_wing),
+        }
+    }
+
+    /// Get the strategy associated with the given deduction.
+    pub fn get_strategy(&self) -> Strategy {
+        match *self {
+            Step::NoCandidatesForCell { .. } => Strategy::NakedSingle,
+            Step::NoPlaceForCandidateInRegion { .. } => Strategy::HiddenSingle,
+            Step::FullHouse { .. } => Strategy::FullHouse,
+            Step::HiddenSingle { .. } => Strategy::HiddenSingle,
+            Step::NakedSingle { .. } => Strategy::NakedSingle,
+            Step::Pointing { .. } => Strategy::Pointing,
+            Step::Claiming { .. } => Strategy::Claiming,
+            Step::HiddenSubset { values, .. } => Strategy::HiddenSubset(values.len()),
+            Step::NakedSubset { values, .. } => Strategy::NakedSubset(values.len()),
+            Step::Fish { degree, .. } => Strategy::Fish(degree),
+            Step::FinnedFish { degree, .. } => Strategy::FinnedFish(degree),
+            Step::XYWing { .. } => Strategy::XYWing,
+            Step::XYZWing { .. } => Strategy::XYZWing,
+            Step::WWing { .. } => Strategy::WWing,
         }
     }
 }

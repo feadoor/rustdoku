@@ -54,7 +54,7 @@ fn find_finned_fish(grid: &Grid, degree: usize, value: usize, base_type: Region)
                 let cover_union = full_cover & !uncovered;
                 let fins = &base_union & &uncovered;
                 if !(fins.common_neighbours() & &cover_union & !base_union).is_empty() {
-                    return Some(Step::FinnedFish { base_type: base_type, base: base_union, cover: cover_union, fins: fins, value: value });
+                    return Some(Step::FinnedFish { degree, base_type, base: base_union, cover: cover_union, fins, value });
                 }
             }
         }
@@ -66,7 +66,7 @@ fn find_finned_fish(grid: &Grid, degree: usize, value: usize, base_type: Region)
 /// Get the deductions arising from the finned fish on the given grid.
 pub fn get_deductions(_grid: &Grid, finned_fish: &Step) -> Vec<Deduction> {
     match *finned_fish {
-        Step::FinnedFish { base_type: _, base, cover, fins, value } => (fins.common_neighbours() & &cover & !base)
+        Step::FinnedFish { base, cover, fins, value, .. } => (fins.common_neighbours() & &cover & !base)
             .map(|cell| Deduction::Elimination(cell, value)),
         _ => unreachable!(),
     }
@@ -75,7 +75,7 @@ pub fn get_deductions(_grid: &Grid, finned_fish: &Step) -> Vec<Deduction> {
 /// Get a concise description of this step, to be used in a description of a solution path.
 pub fn get_description(finned_fish: &Step) -> String {
     match *finned_fish {
-        Step::FinnedFish { base_type, base, cover, fins, value } => {
+        Step::FinnedFish { base_type, base, cover, fins, value, .. } => {
             let base_regions = get_base_regions(base_type, &base);
             let cover_regions = get_cover_regions(base_type, &cover);
             format!(

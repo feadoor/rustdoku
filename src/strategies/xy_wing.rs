@@ -34,7 +34,7 @@ pub fn find(grid: &Grid) -> Option<Step> {
 /// Get the deductions arising from the XY-wing on the given grid.
 pub fn get_deductions(grid: &Grid, xy_wing: &Step) -> Vec<Deduction> {
     match *xy_wing {
-        Step::XYWing { pivot: _, pincer1, pincer2, value } => grid
+        Step::XYWing { pincer1, pincer2, value, .. } => grid
             .cells_with_candidate_in_region(value, &(Grid::neighbours(pincer1) & Grid::neighbours(pincer2)))
             .map(|cell| Deduction::Elimination(cell, value)),
         _ => unreachable!(),

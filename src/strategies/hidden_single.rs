@@ -33,7 +33,7 @@ pub fn find(grid: &Grid) -> Option<Step> {
 /// Get the deductions arising from the hidden single on the given grid.
 pub fn get_deductions(_grid: &Grid, hidden_single: &Step) -> Vec<Deduction> {
     match *hidden_single {
-        Step::HiddenSingle { region: _, cell, value } => vec![ Deduction::Placement(cell, value) ],
+        Step::HiddenSingle { cell, value, .. } => vec![ Deduction::Placement(cell, value) ],
         _ => unreachable!(),
     }
 }
