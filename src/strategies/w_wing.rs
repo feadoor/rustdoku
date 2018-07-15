@@ -55,6 +55,17 @@ pub fn get_deductions(grid: &Grid, w_wing: &Step) -> Vec<Deduction> {
     }
 }
 
+/// Get a concise description of this step, to be used in a description of a solution path.
+pub fn get_description(w_wing: &Step) -> String {
+    match *w_wing {
+        Step::WWing { pincer1, pincer2, region, covered_value, eliminated_value } => format!(
+            "W-Wing - pincers ({}, {}) cover {} in {}, and so eliminate {} from common neighbours",
+            Grid::cell_name(pincer1), Grid::cell_name(pincer2), covered_value, Grid::region_name(&region), eliminated_value,
+        ),
+        _ => unreachable!(),
+    }
+}
+
 /// Returns pairs of bivalue cells which have the same candidates.
 fn bivalue_pairs(grid: &Grid) -> Vec<(CellIdx, CellIdx)> {
     grid.cells_with_n_candidates(2).iter().combinations(2)

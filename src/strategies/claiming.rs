@@ -19,6 +19,7 @@ pub fn find(grid: &Grid) -> Option<Step> {
             if let Some(block) = Grid::block_containing(&cells) {
                 if !grid.cells_with_candidate_in_region(val, &(block & !region)).is_empty() {
                     return Some(Step::Claiming { region: *region, block: *block, value: val });
+
                 }
             }
         }
@@ -33,6 +34,17 @@ pub fn get_deductions(grid: &Grid, claiming: &Step) -> Vec<Deduction> {
         Step::Claiming { region, block, value } => grid
             .cells_with_candidate_in_region(value, &(block & !region))
             .map(|cell| Deduction::Elimination(cell, value)),
+        _ => unreachable!(),
+    }
+}
+
+/// Get a concise description of this step, to be used in a description of a solution path.
+pub fn get_description(claiming: &Step) -> String {
+    match *claiming {
+        Step::Claiming { region, block, value } => format!(
+            "Claiming - the {}s in {} eliminate further {}s from {}",
+            value, Grid::region_name(&region), value, Grid::region_name(&block),
+        ),
         _ => unreachable!(),
     }
 }

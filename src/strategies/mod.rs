@@ -17,6 +17,8 @@ use grid::{CellIdx, Grid, Region};
 use grid::cellset::CellSet;
 use grid::candidateset::CandidateSet;
 
+use std::fmt;
+
 /// The different types of deduction that can be made on a grid.
 pub enum Deduction {
     /// Indicates that the given value can be placed in the cell at the given index.
@@ -125,6 +127,27 @@ impl Step {
             ref xy_wing @ Step::XYWing { .. } => xy_wing::get_deductions(&grid, xy_wing),
             ref xyz_wing @ Step::XYZWing { .. } => xyz_wing::get_deductions(&grid, xyz_wing),
             ref w_wing @ Step::WWing { .. } => w_wing::get_deductions(&grid, w_wing),
+        }
+    }
+}
+
+impl fmt::Display for Step {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Step::NoCandidatesForCell { cell } => write!(f, "No candidates remain for cell {}", Grid::cell_name(cell)),
+            Step::NoPlaceForCandidateInRegion { region, value } => write!(f, "No place for {} in {}", value, Grid::region_name(&region)),
+            ref full_house @ Step::FullHouse { .. } => write!(f, "{}", full_house::get_description(&full_house)),
+            ref hidden_single @ Step::HiddenSingle { .. } => write!(f, "{}", hidden_single::get_description(&hidden_single)),
+            ref naked_single @ Step::NakedSingle { .. } => write!(f, "{}", naked_single::get_description(&naked_single)),
+            ref pointing @ Step::Pointing { .. } => write!(f, "{}", pointing::get_description(&pointing)),
+            ref claiming @ Step::Claiming { .. } => write!(f, "{}", claiming::get_description(&claiming)),
+            ref hidden_subset @ Step::HiddenSubset { .. } => write!(f, "{}", hidden_subset::get_description(&hidden_subset)),
+            ref naked_subset @ Step::NakedSubset { .. } => write!(f, "{}", naked_subset::get_description(&naked_subset)),
+            ref fish @ Step::Fish { .. } => write!(f, "{}", basic_fish::get_description(&fish)),
+            ref finned_fish @ Step::FinnedFish { .. } => write!(f, "{}", finned_fish::get_description(&finned_fish)),
+            ref xy_wing @ Step::XYWing { .. } => write!(f, "{}", xy_wing::get_description(&xy_wing)),
+            ref xyz_wing @ Step::XYZWing { .. } => write!(f, "{}", xyz_wing::get_description(&xyz_wing)),
+            ref w_wing @ Step::WWing { .. } => write!(f, "{}", w_wing::get_description(&w_wing)),
         }
     }
 }

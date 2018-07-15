@@ -36,3 +36,14 @@ pub fn get_deductions(grid: &Grid, pointing: &Step) -> Vec<Deduction> {
         _ => unreachable!(),
     }
 }
+
+/// Get a concise description of this step, to be used in a description of a solution path.
+pub fn get_description(pointing: &Step) -> String {
+    match *pointing {
+        Step::Pointing { block, region, value } => format!(
+            "Pointing - the {}s in {} eliminate further {}s from {}",
+            value, Grid::region_name(&block), value, Grid::region_name(&region),
+        ),
+        _ => unreachable!(),
+    }
+}

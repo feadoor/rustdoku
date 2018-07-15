@@ -36,3 +36,14 @@ pub fn get_deductions(_grid: &Grid, full_house: &Step) -> Vec<Deduction> {
         _ => unreachable!(),
     }
 }
+
+/// Get a concise description of this step, to be used in a description of a solution path.
+pub fn get_description(full_house: &Step) -> String {
+    match *full_house {
+        Step::FullHouse { region, cell, value } => format!(
+            "Full House - {} is the last cell in {}, and must contain {}",
+            Grid::cell_name(cell), Grid::region_name(&region), value,
+        ),
+        _ => unreachable!(),
+    }
+}

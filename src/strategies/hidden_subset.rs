@@ -40,6 +40,25 @@ pub fn get_deductions(grid: &Grid, hidden_subset: &Step) -> Vec<Deduction> {
     }
 }
 
+/// Get a concise description of this step, to be used in a description of a solution path.
+pub fn get_description(hidden_subset: &Step) -> String {
+    match *hidden_subset {
+        Step::HiddenSubset { region, cells, values } => format!(
+            "Hidden {} - {} in {} {}",
+            get_subset_name(cells.len()), values, Grid::region_name(&region), cells,
+        ),
+        _ => unreachable!(),
+    }
+}
+
+fn get_subset_name<'a>(size: usize) -> &'a str {
+    match size {
+        2 => "Pair",
+        3 => "Triple",
+        4 => "Quad",
+        _ => unreachable!(),
+    }
+}
 
 fn _get_deductions(grid: &Grid, cells: &CellSet, candidates: &CandidateSet) -> Vec<Deduction> {
 

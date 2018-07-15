@@ -33,9 +33,20 @@ pub fn find(grid: &Grid) -> Option<Step> {
 /// Get the deductions arising from the XYZ-wing on the given grid.
 pub fn get_deductions(grid: &Grid, xyz_wing: &Step) -> Vec<Deduction> {
     match *xyz_wing {
-        Step::XYZWing { pivot, pincer1, pincer2, value } => 
+        Step::XYZWing { pivot, pincer1, pincer2, value } =>
             grid.cells_with_candidate_in_region(value, &(Grid::neighbours(pincer1) & Grid::neighbours(pincer2) & Grid::neighbours(pivot)))
             .map(|cell| Deduction::Elimination(cell, value)),
+        _ => unreachable!(),
+    }
+}
+
+/// Get a concise description of this step, to be used in a description of a solution path.
+pub fn get_description(xyz_wing: &Step) -> String {
+    match *xyz_wing {
+        Step::XYZWing { pivot, pincer1, pincer2, value } => format!(
+            "XYZ-Wing - pivot {} and pincers ({}, {}) eliminate {} from common neighbours",
+            Grid::cell_name(pivot), Grid::cell_name(pincer1), Grid::cell_name(pincer2), value,
+        ),
         _ => unreachable!(),
     }
 }

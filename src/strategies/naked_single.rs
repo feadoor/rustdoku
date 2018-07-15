@@ -34,3 +34,14 @@ pub fn get_deductions(_grid: &Grid, naked_single: &Step) -> Vec<Deduction> {
         _ => unreachable!(),
     }
 }
+
+/// Get a concise description of this step, to be used in a description of a solution path.
+pub fn get_description(naked_single: &Step) -> String {
+    match *naked_single {
+        Step::NakedSingle { cell, value } => format!(
+            "Naked Single - {} can only contain {}",
+            Grid::cell_name(cell), value,
+        ),
+        _ => unreachable!(),
+    }
+}

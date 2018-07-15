@@ -41,6 +41,17 @@ pub fn get_deductions(grid: &Grid, xy_wing: &Step) -> Vec<Deduction> {
     }
 }
 
+/// Get a concise description of this step, to be used in a description of a solution path.
+pub fn get_description(xy_wing: &Step) -> String {
+    match *xy_wing {
+        Step::XYWing { pivot, pincer1, pincer2, value } => format!(
+            "XY-Wing - pivot {} and pincers ({}, {}) eliminate {} from common neighbours",
+            Grid::cell_name(pivot), Grid::cell_name(pincer1), Grid::cell_name(pincer2), value,
+        ),
+        _ => unreachable!(),
+    }
+}
+
 /// Return a `CellSet` consisting of possible pincer cells for the given pivot - that is, bivalue
 /// cells which can see the pivot and which have a candidate in common with it.
 fn pincers(grid: &Grid, pivot: CellIdx) -> CellSet {

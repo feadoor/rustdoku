@@ -1,5 +1,6 @@
 //! A structure which stores sets of cells within the grid as bitmasks.
 
+use std::fmt;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 use std::ops::{BitAndAssign, BitOrAssign, BitXorAssign};
 
@@ -23,6 +24,12 @@ pub struct CellSetIterator {
     hi: u64,
     /// The remaining cells, low order bits.
     lo: u64,
+}
+
+impl fmt::Display for CellSet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({})", self.iter().map(|x| Grid::cell_name(x)).collect::<Vec<_>>().join(", "))
+    }
 }
 
 impl Iterator for CellSetIterator {

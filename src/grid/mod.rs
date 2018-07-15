@@ -52,6 +52,7 @@ impl fmt::Debug for GridParseError {
 }
 
 /// A Sudoku grid.
+#[derive(Clone)]
 pub struct Grid {
     /// The cells of the grid, in row-major order. Although this is a `Vec<Cell>`, it always has
     /// exactly 81 entries.

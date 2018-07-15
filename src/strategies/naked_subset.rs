@@ -40,6 +40,26 @@ pub fn get_deductions(grid: &Grid, naked_subset: &Step) -> Vec<Deduction> {
     }
 }
 
+/// Get a concise description of this step, to be used in a description of a solution path.
+pub fn get_description(naked_subset: &Step) -> String {
+    match *naked_subset {
+        Step::NakedSubset { region, cells, values } => format!(
+            "Naked {} - {} in {} ({})",
+            get_subset_name(cells.len()), values, Grid::region_name(&region), cells,
+        ),
+        _ => unreachable!(),
+    }
+}
+
+fn get_subset_name<'a>(size: usize) -> &'a str {
+    match size {
+        2 => "Pair",
+        3 => "Triple",
+        4 => "Quad",
+        _ => unreachable!(),
+    }
+}
+
 
 /// Build up the deductions resulting from a naked subset.
 fn _get_deductions(grid: &Grid, cells: &CellSet, candidates: &CandidateSet) -> Vec<Deduction> {

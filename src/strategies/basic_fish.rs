@@ -63,3 +63,46 @@ pub fn get_deductions(_grid: &Grid, fish: &Step) -> Vec<Deduction> {
         _ => unreachable!(),
     }
 }
+
+/// Get a concise description of this step, to be used in a description of a solution path.
+pub fn get_description(fish: &Step) -> String {
+    match *fish {
+        Step::Fish { base_type, base, cover, value } => {
+            let base_regions = get_base_regions(base_type, &base);
+            let cover_regions = get_cover_regions(base_type, &cover);
+            format!(
+                "{} - on value {} with base ({}) and cover ({})",
+                get_fish_name(base_regions.len()),
+                value,
+                base_regions.iter().map(|x| Grid::region_name(x)).collect::<Vec<_>>().join(", "),
+                cover_regions.iter().map(|x| Grid::region_name(x)).collect::<Vec<_>>().join(", "),
+            )
+        },
+        _ => unreachable!(),
+    }
+}
+
+fn get_fish_name<'a>(size: usize) -> &'a str {
+    match size {
+        2 => "X-Wing",
+        3 => "Swordfish",
+        4 => "Jellyfish",
+        _ => unreachable!(),
+    }
+}
+
+fn get_base_regions(base_type: Region, base_union: &CellSet) -> Vec<&CellSet> {
+    match base_type {
+        Row => Grid::intersecting_rows(base_union),
+        Column => Grid::intersecting_columns(base_union),
+        _ => unreachable!(),
+    }
+}
+
+fn get_cover_regions(base_type: Region, cover_union: &CellSet) -> Vec<&CellSet> {
+    match base_type {
+        Row => Grid::intersecting_columns(cover_union),
+        Column => Grid::intersecting_rows(cover_union),
+        _ => unreachable!(),
+    }
+}

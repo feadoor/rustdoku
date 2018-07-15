@@ -22,10 +22,9 @@ fn main() {
             let mut grid = grid_result.unwrap();
             println!("\nInitial grid:\n\n{}", grid);
             let solve_details = solver::solve(&mut grid, &config);
-            // TODO: Implement descriptions of steps
-            // for step in solve_details.steps {
-            //     println!("  - {}", step);
-            // }
+            for step in solve_details.steps {
+                println!(" - {}", step);
+            }
             println!("\nResult: {:?}", solve_details.result);
             println!("\nFinal grid:\n\n{}", grid);
         } else {

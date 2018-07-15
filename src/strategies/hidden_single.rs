@@ -37,3 +37,14 @@ pub fn get_deductions(_grid: &Grid, hidden_single: &Step) -> Vec<Deduction> {
         _ => unreachable!(),
     }
 }
+
+/// Get a concise description of this step, to be used in a description of a solution path.
+pub fn get_description(hidden_single: &Step) -> String {
+    match *hidden_single {
+        Step::HiddenSingle { region, cell, value } => format!(
+            "Hidden Single - {} is the only place for {} in {}",
+            Grid::cell_name(cell), value, Grid::region_name(&region),
+        ),
+        _ => unreachable!(),
+    }
+}
