@@ -1,54 +1,36 @@
 //! Analyse the solution path of a particular Sudoku, and check constraints.
 
 use grid::Grid;
-use solver::{solve, SolveConfiguration, SolveResult};
-use strategies::Strategy;
+use solver;
+use solver::{SolveConfiguration, SolveDetails};
+use solver::SolveResult::Solved;
 
 /// A group of constraints that must be met by a puzzle
-pub struct Criteria {
-    solve_configuration: SolveConfiguration,
-    constraints: Vec<Constraint>,
+pub struct Criteria<'a> {
+    configuration: SolveConfiguration,
+    constraints: Vec<&'a Fn(&SolveDetails) -> bool>,
 }
 
-/// A single constraint that must be met by a puzzle
-pub enum Constraint {
-    /// The puzzle must be solvable
-    Solvable,
-    /// The puzzle must be unsolvable
-    Unsolvable,
-    /// The puzzle cannot be solved without the use of at least one of the given strategies
-    Requires(Vec<Strategy>),
-}
+impl <'a> Criteria<'a> {
 
-impl Criteria {
-
-    pub fn with_configuration(configuration: SolveConfiguration) -> Criteria {
-        Criteria { solve_configuration: configuration, constraints: Vec::new(), }
+    pub fn solvable_with(configuration: SolveConfiguration) -> Criteria<'a> {
+        Criteria { configuration, constraints: vec![&solvable], }
     }
 
-    pub fn with(self, constraint: Constraint) -> Criteria {
-        let mut criteria = Criteria {
-            solve_configuration: self.solve_configuration,
-            constraints: self.constraints,
-        };
-        criteria.constraints.push(constraint);
-        criteria
+    pub fn not_solvable_with(configuration: SolveConfiguration) -> Criteria<'a> {
+        Criteria { configuration, constraints: vec![&unsolvable], }
     }
-
 }
 
 pub fn meets_criteria(grid: &Grid, criteria: &Criteria) -> bool {
-    let solve_details = solve(&mut grid.clone(), &criteria.solve_configuration);
-    for constraint in &criteria.constraints {
-        let meets_constraint = match *constraint {
-            Constraint::Solvable => solve_details.result == SolveResult::Solved,
-            Constraint::Unsolvable => solve_details.result == SolveResult::InsufficientStrategies,
-            Constraint::Requires(ref strats) => {
-                let configuration = criteria.solve_configuration.without_strategies(&strats);
-                solve(&mut grid.clone(), &configuration).result == SolveResult::InsufficientStrategies
-            },
-        };
-        if !meets_constraint { return false; }
-    }
-    true
+    let solve_details = solver::solve(&mut grid.clone(), &criteria.configuration);
+    criteria.constraints.iter().all(|con| con(&solve_details))
+}
+
+fn solvable(solve_details: &SolveDetails) -> bool {
+    solve_details.result == Solved
+}
+
+fn unsolvable(solve_details: &SolveDetails) -> bool {
+    solve_details.result != Solved
 }
