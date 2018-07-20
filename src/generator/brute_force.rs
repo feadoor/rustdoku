@@ -722,32 +722,22 @@ const NEIGHBOURS_FOR_CELL: &'static[&'static[Cell; NEIGHBOURS]; CELLS] = &[
     &[8, 17, 26, 35, 44, 53, 62, 71, 72, 73, 74, 75, 76, 77, 78, 79, 60, 61, 69, 70],
 ];
 
-struct BruteForceResult {
-    solution_count: usize,
-    solution: Option<Vec<usize>>,
-}
-
 pub fn has_unique_solution(clues: &[usize]) -> bool {
     let mut solver = BruteForceSolver::init_from_clues(clues);
-    solver.run(2).solution_count == 1
+    solver.run(2);
+    solver.solution_count == 1
 }
 
-pub fn get_random_solution() -> Vec<usize> {
-    let (mut clues, mut first_row) = (vec![0; CELLS], vec![1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    thread_rng().shuffle(&mut first_row);
-    for (cell, &clue) in first_row.iter().enumerate() { clues[cell] = clue; }
-
-    loop {
-        let solution = get_random_solution_from_clues(&[0; CELLS], 100_000);
-        if solution.is_some() { return solution.unwrap(); }
-    }
-}
-
-pub fn get_random_solution_from_clues(clues: &[usize], max_steps: usize) -> Option<Vec<usize>> {
+pub fn count_solutions(clues: &[usize]) -> usize {
     let mut solver = BruteForceSolver::init_from_clues(clues);
-    solver.use_random();
-    solver.set_max_steps(max_steps);
-    solver.run(1).solution
+    solver.run(usize::max_value());
+    solver.solution_count
+}
+
+pub fn random_solution(clues: &[usize]) -> Option<Vec<usize>> {
+    let mut solver = BruteForceSolver::init_from_clues(clues);
+    solver.run(1);
+    solver.saved_solution.map(|x| x.clone())
 }
 
 #[derive(Clone)]
@@ -783,37 +773,30 @@ struct Guess {
 }
 
 struct BruteForceSolver {
-    solution_count: usize,
     invalid: bool,
     finished: bool,
 
-    random: bool,
-
     board: BoardState,
     board_stack: Vec<BoardState>,
+    solution_count: usize,
     saved_solution: Option<Vec<usize>>,
 
     placement_queue: Vec<Placement>,
     guess_stack: Vec<Guess>,
-    steps: usize,
-    max_steps: usize,
 }
 
 impl BruteForceSolver {
 
     fn init_from_clues(clues: &[usize]) -> BruteForceSolver {
         let mut solver = BruteForceSolver {
-            solution_count: 0,
             invalid: false,
             finished: false,
-            random: false,
             board: BoardState::empty(),
             board_stack: Vec::new(),
+            solution_count: 0,
             saved_solution: None,
             placement_queue: Vec::new(),
             guess_stack: Vec::new(),
-            steps: 0,
-            max_steps: usize::max_value(),
         };
 
         for (cell, &clue) in clues.iter().enumerate() {
@@ -825,15 +808,7 @@ impl BruteForceSolver {
         solver
     }
 
-    fn use_random(&mut self) {
-        self.random = true;
-    }
-
-    fn set_max_steps(&mut self, max_steps: usize) {
-        self.max_steps = max_steps;
-    }
-
-    fn run(&mut self, max_solutions: usize) -> BruteForceResult {
+    fn run(&mut self, max_solutions: usize) {
         while !self.finished {
             while !self.placement_queue.is_empty() { self.process_queue(); }
             if self.board.cells_remaining > 0 && !self.invalid {
@@ -847,11 +822,6 @@ impl BruteForceSolver {
                 if self.solution_count >= max_solutions { break; }
                 self.backtrack();
             }
-        }
-
-        BruteForceResult {
-            solution_count: self.solution_count,
-            solution: self.saved_solution.clone(),
         }
     }
 
@@ -925,48 +895,31 @@ impl BruteForceSolver {
     }
 
     fn get_best_cell_to_guess(&mut self) -> Option<Cell> {
-        if self.random {
-            let cells: Vec<_> = (0..CELLS).filter(|&cell| self.board.cells[cell] != NO_DIGITS).collect();
-            thread_rng().choose(&cells).map(|x| *x)
-        } else {
-            let (mut best_cell, mut best_digits) = (0, DIGITS + 1);
-            for cell in 0..CELLS {
-                let digits = DIGITS_IN_MASK[self.board.cells[cell]];
-                if digits > 1 && digits < best_digits {
-                    best_cell = cell;
-                    best_digits = digits;
-                    if digits == 2 { break; }
-                }
+        let (mut best_cell, mut best_digits) = (0, DIGITS + 1);
+        for cell in 0..CELLS {
+            let digits = DIGITS_IN_MASK[self.board.cells[cell]];
+            if digits > 1 && digits < best_digits {
+                best_cell = cell;
+                best_digits = digits;
+                if digits == 2 { break; }
             }
-            if best_digits == DIGITS + 1 { None } else { Some(best_cell) }
         }
+        if best_digits == DIGITS + 1 { None } else { Some(best_cell) }
     }
 
     fn get_guess_for_cell(&mut self, cell: Cell) -> Guess {
         let cell_mask = self.board.cells[cell];
-        let (guess_mask, leftovers) = if self.random {
-            let &guess_mask = thread_rng().choose(POSSIBLE_GUESSES_FOR_MASK[cell_mask]).unwrap();
-            let leftovers = cell_mask ^ guess_mask;
-            (guess_mask, leftovers)
-        } else {
-            let leftovers = cell_mask & cell_mask.wrapping_sub(1);
-            let guess_mask = cell_mask ^ leftovers;
-            (guess_mask, leftovers)
-        };
+        let guess_mask = *thread_rng().choose(POSSIBLE_GUESSES_FOR_MASK[cell_mask]).unwrap();
+        let leftovers = cell_mask ^ guess_mask;
         Guess{ cell: cell, mask: guess_mask, remaining: leftovers }
     }
 
     fn guess(&mut self) {
-        if self.steps < self.max_steps {
-            if let Some(best_cell) = self.get_best_cell_to_guess() {
-                let guess = self.get_guess_for_cell(best_cell);
-                self.board_stack.push(self.board.clone());
-                self.guess_stack.push(guess);
-                self.steps += 1;
-                self.enqueue_placement(best_cell, guess.mask);
-            } else {
-                self.invalid = true;
-            }
+        if let Some(best_cell) = self.get_best_cell_to_guess() {
+            let guess = self.get_guess_for_cell(best_cell);
+            self.board_stack.push(self.board.clone());
+            self.guess_stack.push(guess);
+            self.enqueue_placement(best_cell, guess.mask);
         } else {
             self.invalid = true;
         }
