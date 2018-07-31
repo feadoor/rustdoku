@@ -6,30 +6,31 @@ use grid::Grid;
 use grid::candidateset::CandidateSet;
 use grid::cellset::CellSet;
 use strategies::{Deduction, Step};
+use utils::GeneratorAdapter;
 
-/// Return, if one exists, a naked subset of the given degree.
+/// Find the naked subsets, of the given degree, that appear in the grid.
 ///
 /// A naked subset is when, in a particular region, n cells can only hold, between them, n
 /// different values. Then those values can be eliminated from elsewhere in the region.
-pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Step> {
+pub fn find_with_degree<'a>(grid: &'a Grid, degree: usize) -> impl Iterator<Item = Step> + 'a {
 
-    // Iterate over all tuples of empty cells from regions of the grid.
-    for region in Grid::regions() {
-        for cells in grid.empty_cells_in_region(region).iter().combinations(degree).map(CellSet::from_cells) {
+    GeneratorAdapter::of(move || {
+        // Iterate over all tuples of empty cells from regions of the grid.
+        for region in Grid::regions() {
+            for cells in grid.empty_cells_in_region(region).iter().combinations(degree).map(CellSet::from_cells) {
 
-            // Take the union of the candidates found in these cells.
-            let candidates = grid.all_candidates_from_region(&cells);
+                // Take the union of the candidates found in these cells.
+                let candidates = grid.all_candidates_from_region(&cells);
 
-            // Check if the right number of candidates appear and if any eliminations will occur.
-            if candidates.len() == degree {
-                if cells.common_neighbours().iter().any(|cell| !(grid.candidates(cell) & candidates).is_empty()) {
-                    return Some(Step::NakedSubset { region: *region, cells: cells, values: candidates });
+                // Check if the right number of candidates appear and if any eliminations will occur.
+                if candidates.len() == degree {
+                    if cells.common_neighbours().iter().any(|cell| !(grid.candidates(cell) & candidates).is_empty()) {
+                        yield Step::NakedSubset { region: *region, cells: cells, values: candidates };
+                    }
                 }
             }
         }
-    }
-
-    None
+    })
 }
 
 /// Get the deductions arising from the hidden single on the given grid.

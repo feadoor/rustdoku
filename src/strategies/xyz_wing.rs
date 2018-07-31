@@ -4,30 +4,32 @@ use grid::CellIdx;
 use grid::Grid;
 use grid::cellset::CellSet;
 use strategies::{Deduction, Step};
+use utils::GeneratorAdapter;
 
-/// Return, if one exists, an XYZ-wing.
+/// Find XYZ-wings that exist in the grid.
 ///
 /// An XYZ-wing is a pattern comprising a tri-value cell and two bi-value cells. Suppose we have a
 /// cell, called the pivot, with three candidates XYZ. Suppose that there are two cells within
 /// sight of the pivot, called the pincers, which have candidates XZ and YZ. Then Z can be
 /// eliminated from all cells which can see the pivot and both pincers.
-pub fn find(grid: &Grid) -> Option<Step> {
-    // Iterate over tri-value cells of the grid as the pivot and look for pincer cells.
-    for pivot in grid.cells_with_n_candidates(3).iter() {
-        for pincer1 in first_pincers(grid, pivot).iter() {
-            for pincer2 in second_pincers(grid, pivot, pincer1).iter() {
+pub fn find<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
 
-                // Check for eliminations coming from this wing.
-                let ex_candidate = (grid.candidates(pincer1) & grid.candidates(pincer2)).first().unwrap();
-                let elim_region = Grid::neighbours(pincer1) & Grid::neighbours(pincer2) & Grid::neighbours(pivot);
-                if !grid.cells_with_candidate_in_region(ex_candidate, &elim_region).is_empty() {
-                    return Some(Step::XYZWing { pivot, pincer1, pincer2, value: ex_candidate });
+    GeneratorAdapter::of(move || {
+        // Iterate over tri-value cells of the grid as the pivot and look for pincer cells.
+        for pivot in grid.cells_with_n_candidates(3).iter() {
+            for pincer1 in first_pincers(grid, pivot).iter() {
+                for pincer2 in second_pincers(grid, pivot, pincer1).iter() {
+
+                    // Check for eliminations coming from this wing.
+                    let ex_candidate = (grid.candidates(pincer1) & grid.candidates(pincer2)).first().unwrap();
+                    let elim_region = Grid::neighbours(pincer1) & Grid::neighbours(pincer2) & Grid::neighbours(pivot);
+                    if !grid.cells_with_candidate_in_region(ex_candidate, &elim_region).is_empty() {
+                        yield Step::XYZWing { pivot, pincer1, pincer2, value: ex_candidate };
+                    }
                 }
             }
         }
-    }
-
-    None
+    })
 }
 
 /// Get the deductions arising from the XYZ-wing on the given grid.

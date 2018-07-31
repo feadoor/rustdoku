@@ -92,18 +92,18 @@ impl Strategy {
     /// Find a step arising from the chosen strategy.
     pub fn find_step(&self, grid: &Grid) -> Option<Step> {
         match *self {
-            Strategy::FullHouse => full_house::find(&grid),
-            Strategy::HiddenSingle => hidden_single::find(&grid),
-            Strategy::NakedSingle => naked_single::find(&grid),
-            Strategy::Pointing => pointing::find(&grid),
-            Strategy::Claiming => claiming::find(&grid),
-            Strategy::HiddenSubset(sz) => hidden_subset::find_with_degree(&grid, sz),
-            Strategy::NakedSubset(sz) => naked_subset::find_with_degree(&grid, sz),
-            Strategy::Fish(sz) => basic_fish::find_with_degree(&grid, sz),
-            Strategy::FinnedFish(sz) => finned_fish::find_with_degree(&grid, sz),
-            Strategy::XYWing => xy_wing::find(&grid),
-            Strategy::XYZWing => xyz_wing::find(&grid),
-            Strategy::WWing => w_wing::find(&grid),
+            Strategy::FullHouse => full_house::find(&grid).next(),
+            Strategy::HiddenSingle => hidden_single::find(&grid).next(),
+            Strategy::NakedSingle => naked_single::find(&grid).next(),
+            Strategy::Pointing => pointing::find(&grid).next(),
+            Strategy::Claiming => claiming::find(&grid).next(),
+            Strategy::HiddenSubset(sz) => hidden_subset::find_with_degree(&grid, sz).next(),
+            Strategy::NakedSubset(sz) => naked_subset::find_with_degree(&grid, sz).next(),
+            Strategy::Fish(sz) => basic_fish::find_with_degree(&grid, sz).next(),
+            Strategy::FinnedFish(sz) => finned_fish::find_with_degree(&grid, sz).next(),
+            Strategy::XYWing => xy_wing::find(&grid).next(),
+            Strategy::XYZWing => xyz_wing::find(&grid).next(),
+            Strategy::WWing => w_wing::find(&grid).next(),
         }
     }
 }

@@ -119,8 +119,8 @@ impl CellSet {
         }
     }
 
-    pub fn union(cell_sets: &[&CellSet]) -> CellSet {
-        cell_sets.iter().fold(CellSet::empty(), |acc, &curr| acc | curr)
+    pub fn union(cell_sets: &[CellSet]) -> CellSet {
+        cell_sets.iter().fold(CellSet::empty(), |acc, curr| acc | curr)
     }
 
     /// Get a `CellSet` representing all common neighbours of the given cells.

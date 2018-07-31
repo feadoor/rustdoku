@@ -235,36 +235,36 @@ impl Grid {
     }
 
     /// Return the row which contains all of the given cells.
-    pub fn row_containing(cells: &CellSet) -> Option<&'static CellSet> {
+    pub fn row_containing(cells: &CellSet) -> Option<CellSet> {
         for row in Grid::rows() {
-            if row & cells == * cells { return Some(row) }
+            if row & cells == * cells { return Some(*row) }
         }
         None
     }
 
     /// Return the column which contains all of the given cells.
-    pub fn column_containing(cells: &CellSet) -> Option<&'static CellSet> {
+    pub fn column_containing(cells: &CellSet) -> Option<CellSet> {
         for column in Grid::columns() {
-            if column & cells == * cells { return Some(column) }
+            if column & cells == * cells { return Some(*column) }
         }
         None
     }
 
     /// Return the block which contains all of the given cells.
-    pub fn block_containing(cells: &CellSet) -> Option<&'static CellSet> {
+    pub fn block_containing(cells: &CellSet) -> Option<CellSet> {
         for block in Grid::blocks() {
-            if block & cells == * cells { return Some(block) }
+            if block & cells == * cells { return Some(*block) }
         }
         None
     }
 
     /// Get the rows which intersect the given `CellSet`.
-    pub fn intersecting_rows(cells: &CellSet) -> Vec<&'static CellSet> {
-        Grid::rows().iter().filter(|&row| !((row & cells).is_empty())).collect()
+    pub fn intersecting_rows(cells: &CellSet) -> Vec<CellSet> {
+        Grid::rows().iter().filter(|&row| !((row & cells).is_empty())).map(|row| *row).collect()
     }
 
     /// Get the columns which intersect the given `CellSet`.
-    pub fn intersecting_columns(cells: &CellSet) -> Vec<&'static CellSet> {
-        Grid::columns().iter().filter(|&column| !((column & cells).is_empty())).collect()
+    pub fn intersecting_columns(cells: &CellSet) -> Vec<CellSet> {
+        Grid::columns().iter().filter(|&column| !((column & cells).is_empty())).map(|col| *col).collect()
     }
 }

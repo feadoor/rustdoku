@@ -5,8 +5,9 @@ use itertools::Itertools;
 use grid::CellIdx;
 use grid::Grid;
 use strategies::{Deduction, Step};
+use utils::GeneratorAdapter;
 
-/// Return, if one exists, an elimination based on a W-wing.
+/// Find the W-wings that exist in the grid.
 ///
 /// A W-wing is a pattern comprising two bivalue cells with the same candidates XY. If there is a
 /// region (row, column, block) of the grid such that all occurrences of X in that region are seen
@@ -14,35 +15,35 @@ use strategies::{Deduction, Step};
 /// have no place left for the candidate X.
 ///
 /// As a consequence, all common neighbours of the two original cells cannot contain Y.
-pub fn find(grid: &Grid) -> Option<Step> {
+pub fn find<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
 
-    // Iterate over pairs of bivalue cells with the same candidates.
-    for (cell1, cell2) in bivalue_pairs(grid) {
-        let common_neighbours = Grid::neighbours(cell1) & Grid::neighbours(cell2);
-        let candidates: Vec<_> = grid.candidates(cell1).iter().collect();
-        let (&candidate1, &candidate2) = (candidates.first().unwrap(), candidates.last().unwrap());
+    GeneratorAdapter::of(move || {
+        // Iterate over pairs of bivalue cells with the same candidates.
+        for (cell1, cell2) in bivalue_pairs(grid) {
+            let common_neighbours = Grid::neighbours(cell1) & Grid::neighbours(cell2);
+            let candidates: Vec<_> = grid.candidates(cell1).iter().collect();
+            let (&candidate1, &candidate2) = (candidates.first().unwrap(), candidates.last().unwrap());
 
-        // Iterate over regions of the grid, checking for a W-wing.
-        for region in Grid::regions() {
-            if region.contains(cell1) || region.contains(cell2) { continue; }
-            let unseen_cells = region & !(Grid::neighbours(cell1) | Grid::neighbours(cell2));
+            // Iterate over regions of the grid, checking for a W-wing.
+            for region in Grid::regions() {
+                if region.contains(cell1) || region.contains(cell2) { continue; }
+                let unseen_cells = region & !(Grid::neighbours(cell1) | Grid::neighbours(cell2));
 
-            // Check if the cells interact with the region in such a way that eliminations occur.
-            if !grid.value_placed_in_region(candidate1, &unseen_cells) && !grid.candidate_in_region(candidate1, &unseen_cells) {
-                if !grid.cells_with_candidate_in_region(candidate2, &common_neighbours).is_empty() {
-                    return Some(Step::WWing { pincer1: cell1, pincer2: cell2, region: *region, covered_value: candidate1, eliminated_value: candidate2 });
+                // Check if the cells interact with the region in such a way that eliminations occur.
+                if !grid.value_placed_in_region(candidate1, &unseen_cells) && !grid.candidate_in_region(candidate1, &unseen_cells) {
+                    if !grid.cells_with_candidate_in_region(candidate2, &common_neighbours).is_empty() {
+                        yield Step::WWing { pincer1: cell1, pincer2: cell2, region: *region, covered_value: candidate1, eliminated_value: candidate2 };
+                    }
                 }
-            }
 
-            if !grid.value_placed_in_region(candidate2, &unseen_cells) && !grid.candidate_in_region(candidate2, &unseen_cells) {
-                if !grid.cells_with_candidate_in_region(candidate1, &common_neighbours).is_empty() {
-                    return Some(Step::WWing { pincer1: cell1, pincer2: cell2, region: *region, covered_value: candidate2, eliminated_value: candidate1 });
+                if !grid.value_placed_in_region(candidate2, &unseen_cells) && !grid.candidate_in_region(candidate2, &unseen_cells) {
+                    if !grid.cells_with_candidate_in_region(candidate1, &common_neighbours).is_empty() {
+                        yield Step::WWing { pincer1: cell1, pincer2: cell2, region: *region, covered_value: candidate2, eliminated_value: candidate1 };
+                    }
                 }
             }
         }
-    }
-
-    None
+    })
 }
 
 /// Get the deductions arising from the W-wing on the given grid.

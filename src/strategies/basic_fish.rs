@@ -1,5 +1,6 @@
-//! A definition of the fish technique.
+//! A definition of the fish strategy.
 
+use itertools::chain;
 use itertools::Itertools;
 
 use grid::Grid;
@@ -7,52 +8,52 @@ use grid::Region;
 use grid::Region::*;
 use grid::cellset::CellSet;
 use strategies::{Deduction, Step};
+use utils::GeneratorAdapter;
 
-/// Return, if one exists, a fish of the given degree.
+/// Find the fish of the given degree that appear in the grid.
 ///
 /// A fish is when, within n rows (columns), all occurrences of a particular digit can be covered
 /// by n columns (rows). Then all other occurrences of that digit within the cover columns (rows)
 /// can be eliminated.
-pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Step> {
+pub fn find_with_degree<'a>(grid: &'a Grid, degree: usize) -> impl Iterator<Item = Step> + 'a {
 
-    for &value in Grid::values() {
-        if let Some(mov) = find_fish(grid, degree, value, Row) { return Some(mov); }
-        if let Some(mov) = find_fish(grid, degree, value, Column) { return Some(mov); }
-    }
-
-    None
+    Grid::values().iter().flat_map(move |&value| {
+        let row_fish = find_fish(grid, degree, value, Row);
+        let col_fish = find_fish(grid, degree, value, Column);
+        chain(row_fish, col_fish)
+    })
 }
 
 /// Find, if it exists, a fish of the given degree with the given value in the grid.
-fn find_fish(grid: &Grid, degree: usize, value: usize, base_type: Region) -> Option<Step> {
+fn find_fish<'a>(grid: &'a Grid, degree: usize, value: usize, base_type: Region) -> impl Iterator<Item = Step> + 'a {
 
-    // Generate all possible base sets for this fish.
-    let candidate_positions = grid.cells_with_candidate(value);
-    let base_sets: Vec<CellSet> = candidate_positions.group_by(base_type);
+    GeneratorAdapter::of(move || {
+        // Generate all possible base sets for this fish.
+        let candidate_positions = grid.cells_with_candidate(value);
+        let base_sets: Vec<CellSet> = candidate_positions.group_by(base_type);
 
-    // Iterate over all possible choices for the base rows / columns, looking for fish without fin
-    // cells.
-    for bases in base_sets.iter().combinations(degree) {
+        // Iterate over all possible choices for the base rows / columns, looking for fish without fin
+        // cells.
+        for bases in base_sets.into_iter().combinations(degree) {
 
-        // Build up the cover sets for this set of potential base sets.
-        let base_union = CellSet::union(&bases);
-        let cover_sets = match base_type {
-            Row => Grid::intersecting_columns(&base_union),
-            Column => Grid::intersecting_rows(&base_union),
-            Block => unreachable!(),
-        };
+            // Build up the cover sets for this set of potential base sets.
+            let base_union = CellSet::union(&bases);
+            let cover_sets = match base_type {
+                Row => Grid::intersecting_columns(&base_union),
+                Column => Grid::intersecting_rows(&base_union),
+                Block => unreachable!(),
+            };
 
-        // If we have exactly as many cover sets as base sets, then we might have some fishy
-        // eliminations on our hands.
-        if cover_sets.len() == degree {
-            let cover_union = CellSet::union(&cover_sets) & &candidate_positions;
-            if !(cover_union & !&base_union).is_empty() {
-                return Some(Step::Fish { degree, base_type, base: base_union, cover: cover_union, value });
+            // If we have exactly as many cover sets as base sets, then we might have some fishy
+            // eliminations on our hands.
+            if cover_sets.len() == degree {
+                let cover_union = CellSet::union(&cover_sets) & &candidate_positions;
+                if !(cover_union & !&base_union).is_empty() {
+                    yield Step::Fish { degree, base_type, base: base_union, cover: cover_union, value };
+                }
             }
         }
-    }
-
-    None
+    })
 }
 
 /// Get the deductions arising from the fish on the given grid.
@@ -91,7 +92,7 @@ fn get_fish_name<'a>(size: usize) -> &'a str {
     }
 }
 
-fn get_base_regions(base_type: Region, base_union: &CellSet) -> Vec<&CellSet> {
+fn get_base_regions(base_type: Region, base_union: &CellSet) -> Vec<CellSet> {
     match base_type {
         Row => Grid::intersecting_rows(base_union),
         Column => Grid::intersecting_columns(base_union),
@@ -99,7 +100,7 @@ fn get_base_regions(base_type: Region, base_union: &CellSet) -> Vec<&CellSet> {
     }
 }
 
-fn get_cover_regions(base_type: Region, cover_union: &CellSet) -> Vec<&CellSet> {
+fn get_cover_regions(base_type: Region, cover_union: &CellSet) -> Vec<CellSet> {
     match base_type {
         Row => Grid::intersecting_columns(cover_union),
         Column => Grid::intersecting_rows(cover_union),

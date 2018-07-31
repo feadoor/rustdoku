@@ -2,32 +2,33 @@
 
 use grid::Grid;
 use strategies::{Deduction, Step};
+use utils::GeneratorAdapter;
 
-/// Return, if one exists, a hidden single.
+/// Find the hidden singles that appear in the grid.
 ///
 /// A hidden single is when a given region has only one spot for a particular value. Then that
 /// value can be placed in that location.
-pub fn find(grid: &Grid) -> Option<Step> {
+pub fn find<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
 
-    // Scan each region, and check if any value has only one position.
-    for region in Grid::regions() {
-        for val in grid.missing_values_from_region(region).iter() {
-            let cells = grid.cells_with_candidate_in_region(val, region);
+    GeneratorAdapter::of(move || {
+        // Scan each region, and check if any value has only one position.
+        for region in Grid::regions() {
+            for val in grid.missing_values_from_region(region).iter() {
+                let cells = grid.cells_with_candidate_in_region(val, region);
 
-            // There might be no place for this value, which is a contradiction. Check.
-            if cells.len() == 0 {
-                return Some(Step::NoPlaceForCandidateInRegion { region: *region, value: val});
-            }
+                // There might be no place for this value, which is a contradiction. Check.
+                if cells.len() == 0 {
+                    yield Step::NoPlaceForCandidateInRegion { region: *region, value: val};
+                }
 
-            // Otherwise check for a hidden single deduction.
-            if cells.len() == 1 {
-                let cell_idx = cells.first().unwrap();
-                return Some(Step::HiddenSingle { region: *region, cell: cell_idx, value: val });
+                // Otherwise check for a hidden single deduction.
+                if cells.len() == 1 {
+                    let cell_idx = cells.first().unwrap();
+                    yield Step::HiddenSingle { region: *region, cell: cell_idx, value: val };
+                }
             }
         }
-    }
-
-    None
+    })
 }
 
 /// Get the deductions arising from the hidden single on the given grid.

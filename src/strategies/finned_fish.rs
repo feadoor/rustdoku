@@ -1,5 +1,6 @@
-//! A definition of the fish technique.
+//! A definition of the finned fish strategy.
 
+use itertools::chain;
 use itertools::Itertools;
 
 use grid::Grid;
@@ -7,8 +8,9 @@ use grid::Region;
 use grid::Region::*;
 use grid::cellset::CellSet;
 use strategies::{Deduction, Step};
+use utils::GeneratorAdapter;
 
-/// Return, if one exists, a finned fish of the given degree.
+/// Find the finned fish of the given degree that appear in the grid.
 ///
 /// A fish is when, within n rows (columns), all occurrences of a particular digit can be covered
 /// by n columns (rows). Then all other occurrences of that digit within the cover columns (rows)
@@ -17,50 +19,49 @@ use strategies::{Deduction, Step};
 /// This pattern is now extended to allow for 'fin cells' - cells in the original rows (columns)
 /// which are not covered by the columns (rows). Then only the eliminated digits which can also
 /// see all fin cells are valid.
-pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Step> {
+pub fn find_with_degree<'a>(grid: &'a Grid, degree: usize) -> impl Iterator<Item = Step> + 'a {
 
-    for &value in Grid::values() {
-        if let Some(mov) = find_finned_fish(grid, degree, value, Row) { return Some(mov); }
-        if let Some(mov) = find_finned_fish(grid, degree, value, Column) { return Some(mov); }
-    }
-
-    None
+    Grid::values().iter().flat_map(move |&value| {
+        let row_fish = find_finned_fish(grid, degree, value, Row);
+        let col_fish = find_finned_fish(grid, degree, value, Column);
+        chain(row_fish, col_fish)
+    })
 }
 
 /// Find, if it exists, a finned fish of the given degree with the given value in the grid.
-fn find_finned_fish(grid: &Grid, degree: usize, value: usize, base_type: Region) -> Option<Step> {
+fn find_finned_fish<'a>(grid: &'a Grid, degree: usize, value: usize, base_type: Region) -> impl Iterator<Item = Step> + 'a {
 
-    // Generate all possible base sets for this fish.
-    let candidate_positions = grid.cells_with_candidate(value);
-    let base_sets: Vec<CellSet> = candidate_positions.group_by(base_type);
+    GeneratorAdapter::of(move || {
+        // Generate all possible base sets for this fish.
+        let candidate_positions = grid.cells_with_candidate(value);
+        let base_sets: Vec<CellSet> = candidate_positions.group_by(base_type);
 
-    // Iterate over all potential choices for the base sets, looking for finned fish.
-    for bases in base_sets.iter().combinations(degree) {
+        // Iterate over all potential choices for the base sets, looking for finned fish.
+        for bases in base_sets.into_iter().combinations(degree) {
 
-        // Build up the cover sets for this set of potential base sets.
-        let base_union = CellSet::union(&bases);
-        let cover_sets = match base_type {
-            Row => Grid::intersecting_columns(&base_union),
-            Column => Grid::intersecting_rows(&base_union),
-            Block => unreachable!(),
-        };
+            // Build up the cover sets for this set of potential base sets.
+            let base_union = CellSet::union(&bases);
+            let cover_sets = match base_type {
+                Row => Grid::intersecting_columns(&base_union),
+                Column => Grid::intersecting_rows(&base_union),
+                Block => unreachable!(),
+            };
 
-        // Iterate over all possible choices of covers that leave fins and check for eliminations.
-        let num_fins = cover_sets.len() - degree;
-        if num_fins == 1 || num_fins == 2 {
-            let full_cover = CellSet::union(&cover_sets) & &candidate_positions;
-            for ex_covers in cover_sets.iter().map(|c| *c).combinations(num_fins) {
-                let uncovered = CellSet::union(&ex_covers);
-                let cover_union = full_cover & !uncovered;
-                let fins = &base_union & &uncovered;
-                if !(fins.common_neighbours() & &cover_union & !base_union).is_empty() {
-                    return Some(Step::FinnedFish { degree, base_type, base: base_union, cover: cover_union, fins, value });
+            // Iterate over all possible choices of covers that leave fins and check for eliminations.
+            let num_fins = cover_sets.len() - degree;
+            if num_fins == 1 || num_fins == 2 {
+                let full_cover = CellSet::union(&cover_sets) & &candidate_positions;
+                for ex_covers in cover_sets.into_iter().combinations(num_fins) {
+                    let uncovered = CellSet::union(&ex_covers);
+                    let cover_union = full_cover & !uncovered;
+                    let fins = &base_union & &uncovered;
+                    if !(fins.common_neighbours() & &cover_union & !base_union).is_empty() {
+                        yield Step::FinnedFish { degree, base_type, base: base_union, cover: cover_union, fins, value };
+                    }
                 }
             }
         }
-    }
-
-    None
+    })
 }
 
 /// Get the deductions arising from the finned fish on the given grid.
@@ -100,7 +101,7 @@ fn get_fish_name<'a>(size: usize) -> &'a str {
     }
 }
 
-fn get_base_regions(base_type: Region, base_union: &CellSet) -> Vec<&CellSet> {
+fn get_base_regions(base_type: Region, base_union: &CellSet) -> Vec<CellSet> {
     match base_type {
         Row => Grid::intersecting_rows(base_union),
         Column => Grid::intersecting_columns(base_union),
@@ -108,7 +109,7 @@ fn get_base_regions(base_type: Region, base_union: &CellSet) -> Vec<&CellSet> {
     }
 }
 
-fn get_cover_regions(base_type: Region, cover_union: &CellSet) -> Vec<&CellSet> {
+fn get_cover_regions(base_type: Region, cover_union: &CellSet) -> Vec<CellSet> {
     match base_type {
         Row => Grid::intersecting_columns(cover_union),
         Column => Grid::intersecting_rows(cover_union),

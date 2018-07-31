@@ -6,30 +6,31 @@ use grid::Grid;
 use grid::candidateset::CandidateSet;
 use grid::cellset::CellSet;
 use strategies::{Deduction, Step};
+use utils::GeneratorAdapter;
 
-/// Return, if one exists, a hidden subset of the given degree.
+/// Find the hidden subsets, of the given degree, in the grid.
 ///
 /// A hidden subset is when, in a particular region, n values can only appear in n cells. Then
 /// other values can be eliminated from those cells.
-pub fn find_with_degree(grid: &Grid, degree: usize) -> Option<Step> {
+pub fn find_with_degree<'a>(grid: &'a Grid, degree: usize) -> impl Iterator<Item = Step> + 'a {
 
-    // Iterate over all regions of the grid and all tuples of values.
-    for region in Grid::regions() {
-        for candidates in grid.missing_values_from_region(region).iter().combinations(degree).map(CandidateSet::from_candidates) {
+    GeneratorAdapter::of(move || {
+        // Iterate over all regions of the grid and all tuples of values.
+        for region in Grid::regions() {
+            for candidates in grid.missing_values_from_region(region).iter().combinations(degree).map(CandidateSet::from_candidates) {
 
-            // Take the collection of cells which contain these candidates.
-            let cells = grid.cells_with_candidates_in_region(&candidates, region);
+                // Take the collection of cells which contain these candidates.
+                let cells = grid.cells_with_candidates_in_region(&candidates, region);
 
-            // Check if the candidates appear in the right number of cells and if any eliminations will occur.
-            if cells.len() == degree {
-                if cells.iter().any(|cell| !(grid.candidates(cell) & !candidates).is_empty()) {
-                    return Some(Step::HiddenSubset { region: *region, cells: cells, values: candidates });
+                // Check if the candidates appear in the right number of cells and if any eliminations will occur.
+                if cells.len() == degree {
+                    if cells.iter().any(|cell| !(grid.candidates(cell) & !candidates).is_empty()) {
+                        yield Step::HiddenSubset { region: *region, cells: cells, values: candidates };
+                    }
                 }
             }
         }
-    }
-
-    None
+    })
 }
 
 /// Get the deductions arising from the hidden subset on the given grid.
