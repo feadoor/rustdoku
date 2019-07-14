@@ -75,8 +75,8 @@ impl CellSet {
         let mut hi = 0x0;
         for cell in cells {
             match cell {
-                0...63 => lo |= 1 << cell,
-                64...81 => hi |= 1 << (cell - 64),
+                0..=63 => lo |= 1 << cell,
+                64..=81 => hi |= 1 << (cell - 64),
                 _ => unreachable!(),
             }
         }
@@ -113,8 +113,8 @@ impl CellSet {
     /// Determine whether this `CellSet` contains a particular cell or not.
     pub fn contains(&self, cell: CellIdx) -> bool {
         match cell {
-            0...63 => self.lo & (1 << cell) != 0,
-            64...81 => self.hi & (1 << (cell - 64)) != 0,
+            0..=63 => self.lo & (1 << cell) != 0,
+            64..=81 => self.hi & (1 << (cell - 64)) != 0,
             _ => unreachable!(),
         }
     }

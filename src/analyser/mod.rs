@@ -8,7 +8,7 @@ use solver::SolveResult::Solved;
 /// A group of constraints that must be met by a puzzle
 pub struct Criteria<'a> {
     configuration: SolveConfiguration,
-    constraints: Vec<&'a Fn(&SolveDetails) -> bool>,
+    constraints: Vec<&'a dyn Fn(&SolveDetails) -> bool>,
 }
 
 impl <'a> Criteria<'a> {
