@@ -12,6 +12,7 @@ mod finned_fish;
 mod xy_wing;
 mod xyz_wing;
 mod w_wing;
+mod wxyz_wing;
 
 use grid::{CellIdx, Grid, Region};
 use grid::cellset::CellSet;
@@ -45,6 +46,7 @@ pub enum Step {
     XYWing { pivot: CellIdx, pincer1: CellIdx, pincer2: CellIdx, value: usize, },
     XYZWing { pivot: CellIdx, pincer1: CellIdx, pincer2: CellIdx, value: usize, },
     WWing { pincer1: CellIdx, pincer2: CellIdx, region: CellSet, covered_value: usize, eliminated_value: usize, },
+    WXYZWing { cells: CellSet, value: usize },
 }
 
 /// The different strategies available to the solver.
@@ -62,6 +64,7 @@ pub enum Strategy {
     XYWing,
     XYZWing,
     WWing,
+    WXYZWing,
 }
 
 pub const ALL_STRATEGIES: &'static [Strategy] = &[
@@ -85,6 +88,7 @@ pub const ALL_STRATEGIES: &'static [Strategy] = &[
     Strategy::XYWing,
     Strategy::XYZWing,
     Strategy::WWing,
+    Strategy::WXYZWing,
 ];
 
 impl Strategy {
@@ -104,6 +108,7 @@ impl Strategy {
             Strategy::XYWing => xy_wing::find(&grid).next(),
             Strategy::XYZWing => xyz_wing::find(&grid).next(),
             Strategy::WWing => w_wing::find(&grid).next(),
+            Strategy::WXYZWing => wxyz_wing::find(&grid).next(),
         }
     }
 }
@@ -127,6 +132,7 @@ impl Step {
             ref xy_wing @ Step::XYWing { .. } => xy_wing::get_deductions(&grid, xy_wing),
             ref xyz_wing @ Step::XYZWing { .. } => xyz_wing::get_deductions(&grid, xyz_wing),
             ref w_wing @ Step::WWing { .. } => w_wing::get_deductions(&grid, w_wing),
+            ref wxyz_wing @ Step::WXYZWing { .. } => wxyz_wing::get_deductions(&grid, &wxyz_wing),
         }
     }
 
@@ -147,6 +153,7 @@ impl Step {
             Step::XYWing { .. } => Strategy::XYWing,
             Step::XYZWing { .. } => Strategy::XYZWing,
             Step::WWing { .. } => Strategy::WWing,
+            Step::WXYZWing { .. } => Strategy::WXYZWing,
         }
     }
 }
@@ -168,6 +175,7 @@ impl fmt::Display for Step {
             ref xy_wing @ Step::XYWing { .. } => write!(f, "{}", xy_wing::get_description(&xy_wing)),
             ref xyz_wing @ Step::XYZWing { .. } => write!(f, "{}", xyz_wing::get_description(&xyz_wing)),
             ref w_wing @ Step::WWing { .. } => write!(f, "{}", w_wing::get_description(&w_wing)),
+            ref wxyz_wing @ Step::WXYZWing { .. } => write!(f, "{}", wxyz_wing::get_description(&wxyz_wing)),
         }
     }
 }

@@ -62,6 +62,11 @@ impl CandidateSet {
         CandidateSet::new(mask)
     }
 
+    /// Add a candidate to this `CandidateSet`.
+    pub fn add_candidate(&mut self, val: Candidate) {
+        self.mask |= 1 << val;
+    }
+
     /// Remove a candidate from this `CandidateSet`.
     pub fn remove_candidate(&mut self, val: Candidate) {
         self.mask &= !(1 << val);

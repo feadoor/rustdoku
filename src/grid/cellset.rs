@@ -119,6 +119,12 @@ impl CellSet {
         }
     }
 
+    /// Produce the intersection of the given `CellSet`s
+    pub fn intersection(cell_sets: &[CellSet]) -> CellSet {
+        cell_sets.iter().fold(CellSet::full(), |acc, curr| acc & curr)
+    }
+
+    /// Produce the union of the given `CellSet`s
     pub fn union(cell_sets: &[CellSet]) -> CellSet {
         cell_sets.iter().fold(CellSet::empty(), |acc, curr| acc | curr)
     }

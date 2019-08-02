@@ -211,6 +211,11 @@ impl Grid {
         self.cells[cell_idx].candidates()
     }
 
+    /// Get all of the empty cells
+    pub fn empty_cells(&self) -> CellSet {
+        CellSet::full().filter(|&ix| self.is_empty(ix))
+    }
+
     /// Get the cells which are able to hold a particular value.
     pub fn cells_with_candidate(&self, value: Candidate) -> CellSet {
         let cells = Grid::cells().iter()
