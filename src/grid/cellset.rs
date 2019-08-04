@@ -10,7 +10,7 @@ use grid::Region;
 use grid::Region::*;
 
 /// A set of cells from a Sudoku grid, represented internally as a bitmask.
-#[derive(Eq, PartialEq, Debug, Clone, Copy)]
+#[derive(Eq, PartialEq, Clone, Copy)]
 pub struct CellSet {
     /// The high order bits of the bitmask.
     pub hi: u64,
@@ -27,6 +27,12 @@ pub struct CellSetIterator {
 }
 
 impl fmt::Display for CellSet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({})", self.iter().map(|x| Grid::cell_name(x)).collect::<Vec<_>>().join(", "))
+    }
+}
+
+impl fmt::Debug for CellSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "({})", self.iter().map(|x| Grid::cell_name(x)).collect::<Vec<_>>().join(", "))
     }
@@ -117,6 +123,11 @@ impl CellSet {
             64..=81 => self.hi & (1 << (cell - 64)) != 0,
             _ => unreachable!(),
         }
+    }
+
+    /// Determine whether this `CellSet` contains another `CellSet` as a subset.
+    pub fn contains_all(&self, other: CellSet) -> bool {
+        ((self.lo & other.lo) == other.lo) && ((self.hi & other.hi) == other.hi)
     }
 
     /// Produce the intersection of the given `CellSet`s

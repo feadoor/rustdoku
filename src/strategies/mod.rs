@@ -13,10 +13,12 @@ mod xy_wing;
 mod xyz_wing;
 mod w_wing;
 mod wxyz_wing;
+mod chaining;
 
 use grid::{CellIdx, Grid, Region};
 use grid::cellset::CellSet;
 use grid::candidateset::CandidateSet;
+use strategies::chaining::Chain;
 
 use std::fmt;
 
@@ -47,6 +49,7 @@ pub enum Step {
     XYZWing { pivot: CellIdx, pincer1: CellIdx, pincer2: CellIdx, value: usize, },
     WWing { pincer1: CellIdx, pincer2: CellIdx, region: CellSet, covered_value: usize, eliminated_value: usize, },
     WXYZWing { cells: CellSet, value: usize },
+    XChain { chain: Chain },
 }
 
 /// The different strategies available to the solver.
@@ -65,6 +68,7 @@ pub enum Strategy {
     XYZWing,
     WWing,
     WXYZWing,
+    XChain,
 }
 
 pub const ALL_STRATEGIES: &'static [Strategy] = &[
@@ -89,26 +93,28 @@ pub const ALL_STRATEGIES: &'static [Strategy] = &[
     Strategy::XYZWing,
     Strategy::WWing,
     Strategy::WXYZWing,
+    Strategy::XChain,
 ];
 
 impl Strategy {
 
     /// Find a step arising from the chosen strategy.
-    pub fn find_step(&self, grid: &Grid) -> Option<Step> {
+    pub fn find_steps<'a>(&self, grid: &'a Grid) -> Box<dyn Iterator<Item = Step> + 'a> {
         match *self {
-            Strategy::FullHouse => full_house::find(&grid).next(),
-            Strategy::HiddenSingle => hidden_single::find(&grid).next(),
-            Strategy::NakedSingle => naked_single::find(&grid).next(),
-            Strategy::Pointing => pointing::find(&grid).next(),
-            Strategy::Claiming => claiming::find(&grid).next(),
-            Strategy::HiddenSubset(sz) => hidden_subset::find_with_degree(&grid, sz).next(),
-            Strategy::NakedSubset(sz) => naked_subset::find_with_degree(&grid, sz).next(),
-            Strategy::Fish(sz) => basic_fish::find_with_degree(&grid, sz).next(),
-            Strategy::FinnedFish(sz) => finned_fish::find_with_degree(&grid, sz).next(),
-            Strategy::XYWing => xy_wing::find(&grid).next(),
-            Strategy::XYZWing => xyz_wing::find(&grid).next(),
-            Strategy::WWing => w_wing::find(&grid).next(),
-            Strategy::WXYZWing => wxyz_wing::find(&grid).next(),
+            Strategy::FullHouse => Box::new(full_house::find(&grid)),
+            Strategy::HiddenSingle => Box::new(hidden_single::find(&grid)),
+            Strategy::NakedSingle => Box::new(naked_single::find(&grid)),
+            Strategy::Pointing => Box::new(pointing::find(&grid)),
+            Strategy::Claiming => Box::new(claiming::find(&grid)),
+            Strategy::HiddenSubset(sz) => Box::new(hidden_subset::find_with_degree(&grid, sz)),
+            Strategy::NakedSubset(sz) => Box::new(naked_subset::find_with_degree(&grid, sz)),
+            Strategy::Fish(sz) => Box::new(basic_fish::find_with_degree(&grid, sz)),
+            Strategy::FinnedFish(sz) => Box::new(finned_fish::find_with_degree(&grid, sz)),
+            Strategy::XYWing => Box::new(xy_wing::find(&grid)),
+            Strategy::XYZWing => Box::new(xyz_wing::find(&grid)),
+            Strategy::WWing => Box::new(w_wing::find(&grid)),
+            Strategy::WXYZWing => Box::new(wxyz_wing::find(&grid)),
+            Strategy::XChain => Box::new(chaining::xchain::find(&grid)),
         }
     }
 }
@@ -117,7 +123,7 @@ impl Step {
 
     /// Find the deductions given by the step.
     pub fn get_deductions(&self, grid: &Grid) -> Vec<Deduction> {
-        match *self {
+        match self {
             Step::NoCandidatesForCell { .. } => vec![Deduction::Contradiction],
             Step::NoPlaceForCandidateInRegion { .. } => vec![Deduction::Contradiction],
             ref full_house @ Step::FullHouse { .. } => full_house::get_deductions(&grid, full_house),
@@ -133,6 +139,7 @@ impl Step {
             ref xyz_wing @ Step::XYZWing { .. } => xyz_wing::get_deductions(&grid, xyz_wing),
             ref w_wing @ Step::WWing { .. } => w_wing::get_deductions(&grid, w_wing),
             ref wxyz_wing @ Step::WXYZWing { .. } => wxyz_wing::get_deductions(&grid, &wxyz_wing),
+            Step::XChain { chain } => chaining::get_deductions(&grid, &chain),
         }
     }
 
@@ -154,14 +161,15 @@ impl Step {
             Step::XYZWing { .. } => Strategy::XYZWing,
             Step::WWing { .. } => Strategy::WWing,
             Step::WXYZWing { .. } => Strategy::WXYZWing,
+            Step::XChain { .. } => Strategy::XChain,
         }
     }
 }
 
 impl fmt::Display for Step {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Step::NoCandidatesForCell { cell } => write!(f, "No candidates remain for cell {}", Grid::cell_name(cell)),
+        match self {
+            Step::NoCandidatesForCell { cell } => write!(f, "No candidates remain for cell {}", Grid::cell_name(*cell)),
             Step::NoPlaceForCandidateInRegion { region, value } => write!(f, "No place for {} in {}", value, Grid::region_name(&region)),
             ref full_house @ Step::FullHouse { .. } => write!(f, "{}", full_house::get_description(&full_house)),
             ref hidden_single @ Step::HiddenSingle { .. } => write!(f, "{}", hidden_single::get_description(&hidden_single)),
@@ -176,6 +184,7 @@ impl fmt::Display for Step {
             ref xyz_wing @ Step::XYZWing { .. } => write!(f, "{}", xyz_wing::get_description(&xyz_wing)),
             ref w_wing @ Step::WWing { .. } => write!(f, "{}", w_wing::get_description(&w_wing)),
             ref wxyz_wing @ Step::WXYZWing { .. } => write!(f, "{}", wxyz_wing::get_description(&wxyz_wing)),
+            Step::XChain { chain } => write!(f, "{}", chaining::get_description(chain)),
         }
     }
 }

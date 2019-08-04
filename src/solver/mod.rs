@@ -4,7 +4,7 @@ mod solve_configuration;
 
 use grid::Grid;
 
-use strategies::Step;
+use strategies::{Step, Deduction};
 use strategies::Deduction::*;
 
 pub use self::solve_configuration::SolveConfiguration;
@@ -29,8 +29,8 @@ pub struct SolveDetails {
 pub fn solve(grid: &mut Grid, config: &SolveConfiguration) -> SolveDetails {
     let mut steps = Vec::new();
     while !grid.is_solved() {
-        if let Some(step) = find_step(grid, config) {
-            for deduction in step.get_deductions(grid) {
+        if let Some((step, deductions)) = find_step(grid, config) {
+            for deduction in deductions {
                 if let Contradiction = deduction {
                     return SolveDetails { result: SolveResult::Contradiction, steps };
                 } else {
@@ -47,12 +47,12 @@ pub fn solve(grid: &mut Grid, config: &SolveConfiguration) -> SolveDetails {
 }
 
 /// Find the next step using the allowed set of strategies.
-fn find_step(grid: &Grid, config: &SolveConfiguration) -> Option<Step> {
+fn find_step(grid: &Grid, config: &SolveConfiguration) -> Option<(Step, Vec<Deduction>)> {
 
     for &strategy in config.strategies() {
-        let step = strategy.find_step(&grid);
-        if step.is_some() {
-            return step;
+        for step in strategy.find_steps(&grid) {
+            let deductions = step.get_deductions(grid);
+            if deductions.len() > 0 { return Some((step, deductions)); }
         }
     }
 

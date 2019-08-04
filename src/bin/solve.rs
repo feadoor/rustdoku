@@ -9,10 +9,14 @@ use rustdoku::grid::Grid;
 use rustdoku::solver;
 use rustdoku::solver::SolveConfiguration;
 use rustdoku::strategies;
+use rustdoku::strategies::Strategy::*;
 
 fn main() {
     let stdin = io::stdin();
-    let config = SolveConfiguration::with_strategies(strategies::ALL_STRATEGIES.to_vec());
+    let config = SolveConfiguration::with_strategies(vec![
+        FullHouse, HiddenSingle, NakedSingle, Pointing, Claiming, NakedSubset(2), NakedSubset(3),
+        NakedSubset(4), HiddenSubset(2), HiddenSubset(3), HiddenSubset(4), XChain,
+    ]);
 
     println!("Enter a sudoku:");
 
