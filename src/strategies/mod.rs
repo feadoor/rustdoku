@@ -50,6 +50,7 @@ pub enum Step {
     WWing { pincer1: CellIdx, pincer2: CellIdx, region: CellSet, covered_value: usize, eliminated_value: usize, },
     WXYZWing { cells: CellSet, value: usize },
     XChain { chain: Chain },
+    XYChain { chain: Chain },
 }
 
 /// The different strategies available to the solver.
@@ -69,6 +70,7 @@ pub enum Strategy {
     WWing,
     WXYZWing,
     XChain,
+    XYChain,
 }
 
 pub const ALL_STRATEGIES: &'static [Strategy] = &[
@@ -88,11 +90,12 @@ pub const ALL_STRATEGIES: &'static [Strategy] = &[
     Strategy::Fish(4),
     Strategy::XYWing,
     Strategy::XYZWing,
-    Strategy::WWing,
     Strategy::FinnedFish(2),
     Strategy::FinnedFish(3),
     Strategy::FinnedFish(4),
     Strategy::XChain,
+    Strategy::XYChain,
+    Strategy::WWing,
     Strategy::WXYZWing,
 ];
 
@@ -115,6 +118,7 @@ impl Strategy {
             Strategy::WWing => Box::new(w_wing::find(&grid)),
             Strategy::WXYZWing => Box::new(wxyz_wing::find(&grid)),
             Strategy::XChain => Box::new(chaining::xchain::find(&grid)),
+            Strategy::XYChain => Box::new(chaining::xychain::find(&grid)),
         }
     }
 }
@@ -140,28 +144,7 @@ impl Step {
             ref w_wing @ Step::WWing { .. } => w_wing::get_deductions(&grid, w_wing),
             ref wxyz_wing @ Step::WXYZWing { .. } => wxyz_wing::get_deductions(&grid, &wxyz_wing),
             Step::XChain { chain } => chaining::get_deductions(&grid, &chain),
-        }
-    }
-
-    /// Get the strategy associated with the given deduction.
-    pub fn get_strategy(&self) -> Strategy {
-        match *self {
-            Step::NoCandidatesForCell { .. } => Strategy::NakedSingle,
-            Step::NoPlaceForCandidateInRegion { .. } => Strategy::HiddenSingle,
-            Step::FullHouse { .. } => Strategy::FullHouse,
-            Step::HiddenSingle { .. } => Strategy::HiddenSingle,
-            Step::NakedSingle { .. } => Strategy::NakedSingle,
-            Step::Pointing { .. } => Strategy::Pointing,
-            Step::Claiming { .. } => Strategy::Claiming,
-            Step::HiddenSubset { values, .. } => Strategy::HiddenSubset(values.len()),
-            Step::NakedSubset { values, .. } => Strategy::NakedSubset(values.len()),
-            Step::Fish { degree, .. } => Strategy::Fish(degree),
-            Step::FinnedFish { degree, .. } => Strategy::FinnedFish(degree),
-            Step::XYWing { .. } => Strategy::XYWing,
-            Step::XYZWing { .. } => Strategy::XYZWing,
-            Step::WWing { .. } => Strategy::WWing,
-            Step::WXYZWing { .. } => Strategy::WXYZWing,
-            Step::XChain { .. } => Strategy::XChain,
+            Step::XYChain { chain } => chaining::get_deductions(&grid, &chain),
         }
     }
 }
@@ -184,7 +167,8 @@ impl fmt::Display for Step {
             ref xyz_wing @ Step::XYZWing { .. } => write!(f, "{}", xyz_wing::get_description(&xyz_wing)),
             ref w_wing @ Step::WWing { .. } => write!(f, "{}", w_wing::get_description(&w_wing)),
             ref wxyz_wing @ Step::WXYZWing { .. } => write!(f, "{}", wxyz_wing::get_description(&wxyz_wing)),
-            Step::XChain { chain } => write!(f, "{}", chaining::get_description(chain)),
+            Step::XChain { chain } => write!(f, "X-Chain - {}", chaining::get_description(chain)),
+            Step::XYChain { chain } => write!(f, "XY-Chain - {}", chaining::get_description(chain)),
         }
     }
 }

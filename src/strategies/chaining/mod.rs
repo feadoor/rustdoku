@@ -1,6 +1,7 @@
 //! Common elements of chaining strategies
 
 pub mod xchain;
+pub mod xychain;
 
 use std::fmt;
 
@@ -58,7 +59,7 @@ pub fn get_deductions(grid: &Grid, chain: &Chain) -> Vec<Deduction> {
 
 /// Get a description of the given chain.
 pub fn get_description(chain: &Chain) -> String {
-    let mut description = format!("Chain - {}", chain[0]);
+    let mut description = format!("{}", chain[0]);
     for step in chain.iter().skip(1) {
         description.push_str(" --> ");
         description.push_str(&format!("{}", step));

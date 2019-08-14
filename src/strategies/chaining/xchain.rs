@@ -142,7 +142,7 @@ impl Chaining for XChainFinder {
 
 }
 
-/// Get all `ValueOn` or `ValueOff` chain nodes for a given candidate from the given grid.
+/// Get all `Value` chain nodes for a given candidate from the given grid.
 fn get_value_nodes_for_candidate(grid: &Grid, candidate: Candidate) -> Vec<ChainNode> {
     let mut value_nodes = Vec::new();
     for cell in grid.cells_with_candidate(candidate).iter() {
@@ -151,7 +151,7 @@ fn get_value_nodes_for_candidate(grid: &Grid, candidate: Candidate) -> Vec<Chain
     value_nodes
 }
 
-/// Get all `GroupOn` and `GroupOff` chain nodes for a given candidate from the given grid.
+/// Get all `Group` chain nodes for a given candidate from the given grid.
 fn get_group_nodes_for_candidate(grid: &Grid, candidate: Candidate) -> Vec<ChainNode> {
     let mut group_nodes = Vec::new();
 
