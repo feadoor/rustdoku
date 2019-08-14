@@ -85,15 +85,15 @@ pub const ALL_STRATEGIES: &'static [Strategy] = &[
     Strategy::HiddenSubset(4),
     Strategy::Fish(2),
     Strategy::Fish(3),
-    Strategy::FinnedFish(2),
-    Strategy::FinnedFish(3),
     Strategy::Fish(4),
-    Strategy::FinnedFish(4),
     Strategy::XYWing,
     Strategy::XYZWing,
     Strategy::WWing,
-    Strategy::WXYZWing,
+    Strategy::FinnedFish(2),
+    Strategy::FinnedFish(3),
+    Strategy::FinnedFish(4),
     Strategy::XChain,
+    Strategy::WXYZWing,
 ];
 
 impl Strategy {

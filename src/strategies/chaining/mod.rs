@@ -58,7 +58,7 @@ pub fn get_deductions(grid: &Grid, chain: &Chain) -> Vec<Deduction> {
 
 /// Get a description of the given chain.
 pub fn get_description(chain: &Chain) -> String {
-    let mut description = format!("X-Chain - {}", chain[0]);
+    let mut description = format!("Chain - {}", chain[0]);
     for step in chain.iter().skip(1) {
         description.push_str(" --> ");
         description.push_str(&format!("{}", step));
@@ -150,5 +150,6 @@ fn find_chains<T: Chaining>(grid: &Grid, chainer: T) -> Vec<Chain> {
         }
     }
 
+    chains.sort_by_key(|chain| chain.len());
     chains
 }
