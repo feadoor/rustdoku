@@ -1,7 +1,6 @@
 //! Common elements of chaining strategies
 
 pub mod xchain;
-pub mod xychain;
 
 use std::fmt;
 

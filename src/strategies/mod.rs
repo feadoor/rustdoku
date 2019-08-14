@@ -14,11 +14,13 @@ mod xyz_wing;
 mod w_wing;
 mod wxyz_wing;
 mod chaining;
+mod xy_chain;
 
 use grid::{CellIdx, Grid, Region};
 use grid::cellset::CellSet;
 use grid::candidateset::CandidateSet;
 use strategies::chaining::Chain;
+use strategies::xy_chain::XYChain;
 
 use std::fmt;
 
@@ -50,7 +52,7 @@ pub enum Step {
     WWing { pincer1: CellIdx, pincer2: CellIdx, region: CellSet, covered_value: usize, eliminated_value: usize, },
     WXYZWing { cells: CellSet, value: usize },
     XChain { chain: Chain },
-    XYChain { chain: Chain },
+    XYChain { chain: XYChain },
 }
 
 /// The different strategies available to the solver.
@@ -118,7 +120,7 @@ impl Strategy {
             Strategy::WWing => Box::new(w_wing::find(&grid)),
             Strategy::WXYZWing => Box::new(wxyz_wing::find(&grid)),
             Strategy::XChain => Box::new(chaining::xchain::find(&grid)),
-            Strategy::XYChain => Box::new(chaining::xychain::find(&grid)),
+            Strategy::XYChain => Box::new(xy_chain::find(&grid)),
         }
     }
 }
@@ -144,7 +146,7 @@ impl Step {
             ref w_wing @ Step::WWing { .. } => w_wing::get_deductions(&grid, w_wing),
             ref wxyz_wing @ Step::WXYZWing { .. } => wxyz_wing::get_deductions(&grid, &wxyz_wing),
             Step::XChain { chain } => chaining::get_deductions(&grid, &chain),
-            Step::XYChain { chain } => chaining::get_deductions(&grid, &chain),
+            ref xy_chain @ Step::XYChain { .. } => xy_chain::get_deductions(&grid, &xy_chain),
         }
     }
 }
@@ -168,7 +170,7 @@ impl fmt::Display for Step {
             ref w_wing @ Step::WWing { .. } => write!(f, "{}", w_wing::get_description(&w_wing)),
             ref wxyz_wing @ Step::WXYZWing { .. } => write!(f, "{}", wxyz_wing::get_description(&wxyz_wing)),
             Step::XChain { chain } => write!(f, "X-Chain - {}", chaining::get_description(chain)),
-            Step::XYChain { chain } => write!(f, "XY-Chain - {}", chaining::get_description(chain)),
+            ref xy_chain @ Step::XYChain { .. } => write!(f, "{}", xy_chain::get_description(&xy_chain)),
         }
     }
 }
