@@ -2,20 +2,41 @@
 
 pub mod xchain;
 
+use std::fmt;
+
 use grid::{Candidate, CellIdx, Grid};
 use grid::cellset::CellSet;
 use strategies::Deduction;
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum ChainNode {
     Value { cell: CellIdx, value: Candidate },
     Group { line: CellSet, block: CellSet, cells: CellSet, value: Candidate },
 }
 
-#[derive(Debug)]
+impl fmt::Display for ChainNode {
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            ChainNode::Value { cell, value } => write!(f, "{}{}", value, Grid::cell_name(cell)),
+            ChainNode::Group { cells, value, .. } => write!(f, "{}{}", value, Grid::region_name(&cells)),
+        }
+    }
+}
+
 pub struct ChainStep {
     node: ChainNode,
     negated: bool,
+}
+
+impl fmt::Display for ChainStep {
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.negated {
+            true => write!(f, "-{}", self.node),
+            false => write!(f, "+{}", self.node),
+        }
+    }
 }
 
 pub type Chain = Vec<ChainStep>;
@@ -37,7 +58,12 @@ pub fn get_deductions(grid: &Grid, chain: &Chain) -> Vec<Deduction> {
 
 /// Get a description of the given chain.
 pub fn get_description(chain: &Chain) -> String {
-    format!("{:?}", chain)
+    let mut description = format!("X-Chain - {}", chain[0]);
+    for step in chain.iter().skip(1) {
+        description.push_str(" --> ");
+        description.push_str(&format!("{}", step));
+    }
+    description
 }
 
 /// A trait for strategies which will seek to form chains in the grid.
@@ -65,19 +91,14 @@ fn find_chains<T: Chaining>(grid: &Grid, chainer: T) -> Vec<Chain> {
     let mut distances = vec![vec![usize::max_value(); 2 * nodes.len()]; 2 * nodes.len()];
     let mut paths = vec![vec![0; 2 * nodes.len()]; 2 * nodes.len()];
 
-    println!("{}", grid);
-    println!("{:?}", nodes);
-
     // Create the adjacency matrix of the graph
     for (start_idx, start_node) in nodes.iter().enumerate() {
         for (end_idx, end_node) in nodes.iter().enumerate() {
             if (start_idx != end_idx) && chainer.is_linked_on_to_off(grid, start_node, end_node) {
-                println!("On to off - {}, {}", start_idx, end_idx);
                 distances[2 * start_idx][2 * end_idx + 1] = 1;
                 paths[2 * start_idx][2 * end_idx + 1] = 2 * end_idx + 1;
             }
             if (start_idx != end_idx) && chainer.is_linked_off_to_on(grid, start_node, end_node) {
-                println!("Off to on - {}, {}", start_idx, end_idx);
                 distances[2 * start_idx + 1][2 * end_idx] = 1;
                 paths[2 * start_idx + 1][2 * end_idx] = 2 * end_idx;
             }
@@ -104,16 +125,13 @@ fn find_chains<T: Chaining>(grid: &Grid, chainer: T) -> Vec<Chain> {
         // From a node to its negation
         if distances[2 * idx][2 * idx + 1] < usize::max_value() {
 
-            println!("Finding a path from node {} to its negation", idx);
 
             let mut chain = Vec::new();
             let (mut negated, mut current_idx) = (false, 2 * idx);
             while current_idx != 2 * idx + 1 {
-                println!("{} - {}", current_idx / 2, !negated);
                 chain.push(ChainStep { node: nodes[current_idx / 2].clone(), negated });
                 negated = !negated; current_idx = paths[current_idx][2 * idx + 1];
             }
-            println!("{} - {}", current_idx / 2, !negated);
             chain.push(ChainStep { node: nodes[current_idx / 2].clone(), negated });
             chains.push(chain);
         }
@@ -121,16 +139,12 @@ fn find_chains<T: Chaining>(grid: &Grid, chainer: T) -> Vec<Chain> {
         // From the negation of a node to a node
         if distances[2 * idx + 1][2 * idx] < usize::max_value() {
 
-            println!("Finding a path from the negation of node {} to the original", idx);
-
             let mut chain = Vec::new();
             let (mut negated, mut current_idx) = (true, 2 * idx + 1);
             while current_idx != 2 * idx {
-                println!("{} - {}", current_idx / 2, !negated);
                 chain.push(ChainStep { node: nodes[current_idx / 2].clone(), negated });
                 negated = !negated; current_idx = paths[current_idx][2 * idx];
             }
-            println!("{} - {}", current_idx / 2, !negated);
             chain.push(ChainStep { node: nodes[current_idx / 2].clone(), negated });
             chains.push(chain);
         }

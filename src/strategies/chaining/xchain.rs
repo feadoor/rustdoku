@@ -94,8 +94,8 @@ impl XChainFinder {
 
     fn is_linked_group_on_group_off(_grid: &Grid, group_on_node: &ChainNode, group_off_node: &ChainNode) -> bool {
         match (group_on_node, group_off_node) {
-            (ChainNode::Group { line: on_line, block: on_block, .. }, ChainNode::Group { cells: off_cells, .. }) => {
-                (on_line | on_block).contains_all(*off_cells)
+            (ChainNode::Group { line: on_line, block: on_block, cells: on_cells, .. }, ChainNode::Group { cells: off_cells, .. }) => {
+                (on_cells & off_cells).is_empty() && (on_line | on_block).contains_all(*off_cells)
             },
             _ => unreachable!(),
         }
