@@ -53,6 +53,7 @@ pub enum Step {
     WXYZWing { cells: CellSet, value: usize },
     XChain { chain: Chain },
     XYChain { chain: XYChain },
+    Aic { chain: Chain },
 }
 
 /// The different strategies available to the solver.
@@ -73,6 +74,7 @@ pub enum Strategy {
     WXYZWing,
     XChain,
     XYChain,
+    Aic,
 }
 
 pub const ALL_STRATEGIES: &'static [Strategy] = &[
@@ -99,6 +101,7 @@ pub const ALL_STRATEGIES: &'static [Strategy] = &[
     Strategy::XYChain,
     Strategy::WWing,
     Strategy::WXYZWing,
+    Strategy::Aic,
 ];
 
 impl Strategy {
@@ -121,6 +124,7 @@ impl Strategy {
             Strategy::WXYZWing => Box::new(wxyz_wing::find(&grid)),
             Strategy::XChain => Box::new(chaining::xchain::find(&grid)),
             Strategy::XYChain => Box::new(xy_chain::find(&grid)),
+            Strategy::Aic => Box::new(chaining::aic::find(&grid)),
         }
     }
 }
@@ -147,6 +151,7 @@ impl Step {
             ref wxyz_wing @ Step::WXYZWing { .. } => wxyz_wing::get_deductions(&grid, &wxyz_wing),
             Step::XChain { chain } => chaining::get_deductions(&grid, &chain),
             ref xy_chain @ Step::XYChain { .. } => xy_chain::get_deductions(&grid, &xy_chain),
+            Step::Aic { chain } => chaining::get_deductions(&grid, &chain),
         }
     }
 }
@@ -171,6 +176,7 @@ impl fmt::Display for Step {
             ref wxyz_wing @ Step::WXYZWing { .. } => write!(f, "{}", wxyz_wing::get_description(&wxyz_wing)),
             Step::XChain { chain } => write!(f, "X-Chain - {}", chaining::get_description(chain)),
             ref xy_chain @ Step::XYChain { .. } => write!(f, "{}", xy_chain::get_description(&xy_chain)),
+            Step::Aic { chain } => write!(f, "AIC - {}", chaining::get_description(chain)),
         }
     }
 }

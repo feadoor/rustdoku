@@ -75,6 +75,14 @@ impl CellSet {
         !CellSet::empty()
     }
 
+    /// Create a `CellSet` containing only the given single cell.
+    pub fn from_cell(cell: CellIdx) -> CellSet {
+        CellSet {
+            lo: if cell < 64 { 1 << cell } else { 0 },
+            hi: if cell >= 64 { 1 << (cell - 64) } else { 0 },
+        }
+    }
+
     /// Create a `CellSet` containing the cells contained in the given iterator.
     pub fn from_cells<I: IntoIterator<Item = CellIdx>>(cells: I) -> CellSet {
         let mut lo = 0x0;

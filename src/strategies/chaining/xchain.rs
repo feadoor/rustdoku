@@ -116,10 +116,9 @@ impl XChainFinder {
 impl Chaining for XChainFinder {
 
     fn get_nodes(&self, grid: &Grid) -> Vec<ChainNode> {
-        let mut value_nodes = get_value_nodes_for_candidate(grid, self.value);
-        let mut group_nodes = get_group_nodes_for_candidate(grid, self.value);
-        value_nodes.append(&mut group_nodes);
-        value_nodes
+        let mut nodes = get_value_nodes_for_candidate(grid, self.value);
+        nodes.append(&mut get_group_nodes_for_candidate(grid, self.value));
+        nodes
     }
 
     fn is_linked_on_to_off(&self, grid: &Grid, start_node: &ChainNode, end_node: &ChainNode) -> bool {
@@ -128,6 +127,7 @@ impl Chaining for XChainFinder {
             (ChainNode::Value { .. }, ChainNode::Group { .. }) => XChainFinder::is_linked_value_on_group_off(grid, start_node, end_node),
             (ChainNode::Group { .. }, ChainNode::Value { .. }) => XChainFinder::is_linked_group_on_value_off(grid, start_node, end_node),
             (ChainNode::Group { .. }, ChainNode::Group { .. }) => XChainFinder::is_linked_group_on_group_off(grid, start_node, end_node),
+            _ => unreachable!(),
         }
     }
 
@@ -137,6 +137,7 @@ impl Chaining for XChainFinder {
             (ChainNode::Value { .. }, ChainNode::Group { .. }) => XChainFinder::is_linked_value_off_group_on(grid, start_node, end_node),
             (ChainNode::Group { .. }, ChainNode::Value { .. }) => XChainFinder::is_linked_group_off_value_on(grid, start_node, end_node),
             (ChainNode::Group { .. }, ChainNode::Group { .. }) => XChainFinder::is_linked_group_off_group_on(grid, start_node, end_node),
+            _ => unreachable!(),
         }
     }
 

@@ -57,6 +57,7 @@ fn main() {
             }
 
             for step in next_steps {
+
                 let mut secondary_grid = grid.clone();
                 for deduction in step.get_deductions(&secondary_grid) {
                     secondary_grid.apply_deduction(deduction);

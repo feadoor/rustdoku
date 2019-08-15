@@ -237,7 +237,7 @@ impl Grid {
     /// Return the row which contains all of the given cells.
     pub fn row_containing(cells: &CellSet) -> Option<CellSet> {
         for row in Grid::rows() {
-            if row & cells == * cells { return Some(*row) }
+            if row & cells == *cells { return Some(*row) }
         }
         None
     }
@@ -245,7 +245,7 @@ impl Grid {
     /// Return the column which contains all of the given cells.
     pub fn column_containing(cells: &CellSet) -> Option<CellSet> {
         for column in Grid::columns() {
-            if column & cells == * cells { return Some(*column) }
+            if column & cells == *cells { return Some(*column) }
         }
         None
     }
@@ -253,7 +253,7 @@ impl Grid {
     /// Return the block which contains all of the given cells.
     pub fn block_containing(cells: &CellSet) -> Option<CellSet> {
         for block in Grid::blocks() {
-            if block & cells == * cells { return Some(*block) }
+            if block & cells == *cells { return Some(*block) }
         }
         None
     }
