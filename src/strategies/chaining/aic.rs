@@ -5,7 +5,6 @@ use grid::cellset::CellSet;
 use strategies::Deduction;
 use strategies::chaining::nodes;
 use strategies::chaining::nodes::ChainNode;
-use utils::GeneratorAdapter;
 
 use std::collections::{HashSet, VecDeque};
 use std::fmt;

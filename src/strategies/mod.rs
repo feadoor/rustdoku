@@ -54,6 +54,7 @@ pub enum Step {
     XChain { chain: Aic },
     XYChain { chain: XYChain },
     Aic { chain: Aic },
+    AlsAic { chain: Aic },
 }
 
 /// The different strategies available to the solver.
@@ -75,6 +76,7 @@ pub enum Strategy {
     XChain,
     XYChain,
     Aic,
+    AlsAic,
 }
 
 pub const ALL_STRATEGIES: &'static [Strategy] = &[
@@ -102,6 +104,7 @@ pub const ALL_STRATEGIES: &'static [Strategy] = &[
     Strategy::WWing,
     Strategy::WXYZWing,
     Strategy::Aic,
+    Strategy::AlsAic,
 ];
 
 impl Strategy {
@@ -125,6 +128,7 @@ impl Strategy {
             Strategy::XChain => Box::new(chaining::find_xchains(&grid)),
             Strategy::XYChain => Box::new(xy_chain::find(&grid)),
             Strategy::Aic => Box::new(chaining::find_aics(&grid)),
+            Strategy::AlsAic => Box::new(chaining::find_als_aics(&grid)),
         }
     }
 }
@@ -152,6 +156,7 @@ impl Step {
             Step::XChain { chain } => chaining::get_aic_deductions(&grid, &chain),
             ref xy_chain @ Step::XYChain { .. } => xy_chain::get_deductions(&grid, &xy_chain),
             Step::Aic { chain } => chaining::get_aic_deductions(&grid, &chain),
+            Step::AlsAic { chain } => chaining::get_aic_deductions(&grid, &chain),
         }
     }
 }
@@ -177,6 +182,7 @@ impl fmt::Display for Step {
             Step::XChain { chain } => write!(f, "X-Chain - {}", chaining::get_aic_description(chain)),
             ref xy_chain @ Step::XYChain { .. } => write!(f, "{}", xy_chain::get_description(&xy_chain)),
             Step::Aic { chain } => write!(f, "AIC - {}", chaining::get_aic_description(chain)),
+            Step::AlsAic { chain } => write!(f, "ALS AIC - {}", chaining::get_aic_description(chain)),
         }
     }
 }

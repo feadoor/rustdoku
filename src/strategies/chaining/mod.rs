@@ -35,11 +35,26 @@ pub fn find_aics<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
         // Create the possible chain nodes
         let mut nodes = nodes::get_value_nodes(grid);
         nodes.append(&mut nodes::get_group_nodes(grid));
-        nodes.append(&mut nodes::get_als_nodes(grid));
 
         // Find the AICs
         for chain in aic::find_aics(grid, nodes) {
             yield Step::Aic { chain };
+        }
+    })
+}
+
+pub fn find_als_aics<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
+
+    GeneratorAdapter::of(move || {
+
+        // Create the possible chain nodes
+        let mut nodes = nodes::get_value_nodes(grid);
+        nodes.append(&mut nodes::get_group_nodes(grid));
+        nodes.append(&mut nodes::get_als_nodes(grid));
+
+        // Find the AICs
+        for chain in aic::find_aics(grid, nodes) {
+            yield Step::AlsAic { chain };
         }
     })
 }
