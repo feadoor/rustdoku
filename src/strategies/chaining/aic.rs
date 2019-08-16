@@ -1,314 +1,181 @@
-//! A definition of the AIC strategy.
+//! Strategies that look for AICs in a grid
 
-use itertools::Itertools;
-
-use grid::Grid;
-use grid::candidateset::CandidateSet;
+use grid::{Candidate, CellIdx, Grid};
 use grid::cellset::CellSet;
-use strategies::Step;
-use strategies::chaining;
-use strategies::chaining::{ChainNode, Chaining};
+use strategies::Deduction;
+use strategies::chaining::nodes;
+use strategies::chaining::nodes::ChainNode;
 use utils::GeneratorAdapter;
 
-/// Find AICs that exist in the grid.
-///
-/// An AIC is an alternating inference chain - that is, a chain that makes alternating inferences
-/// between certain chain nodes being on or off, resulting in either a contradiction or a verity.
-pub fn find<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
-    GeneratorAdapter::of(move || {
-        let aic_chainer = AicFinder::new();
-        for chain in chaining::find_chains(grid, aic_chainer) {
-            yield Step::Aic { chain }
-        }
-    })
+use std::collections::{HashSet, VecDeque};
+use std::fmt;
+
+#[derive(PartialEq, Eq)]
+/// A struct representing a single inference which is part of an AIC
+pub struct AicInference {
+    node: ChainNode,
+    negated: bool,
 }
 
-struct AicFinder { }
+/// A convenience type for a candidate that would be eliminated by an AIC inference
+pub type AffectedCandidate = (CellIdx, Candidate);
 
-impl AicFinder {
+/// A convenience type to represent an entire AIC
+pub type Aic = Vec<AicInference>;
 
-    pub fn new() -> AicFinder {
-        AicFinder { }
-    }
+/// Implement a handy display trait for `AicInference`
+impl fmt::Display for AicInference {
 
-    fn is_linked_value_on_value_off(_grid: &Grid, value_on_node: &ChainNode, value_off_node: &ChainNode) -> bool {
-        match (value_on_node, value_off_node) {
-            (ChainNode::Value { cell: on_cell, value: on_value }, ChainNode::Value { cell: off_cell, value: off_value }) => {
-                *on_value == *off_value && Grid::neighbours(*on_cell).contains(*off_cell)
-            },
-            _ => unreachable!(),
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.negated {
+            true => write!(f, "-{}", self.node),
+            false => write!(f, "+{}", self.node),
         }
     }
-
-    fn is_linked_value_off_value_on(grid: &Grid, value_off_node: &ChainNode, value_on_node: &ChainNode) -> bool {
-        match (value_off_node, value_on_node) {
-            (ChainNode::Value { cell: off_cell, value: off_value }, ChainNode::Value { cell: on_cell, value: on_value }) => {
-                if *on_value == *off_value {
-                    Grid::neighbours(*off_cell).contains(*on_cell) && !grid.candidate_in_region(*off_value, &(Grid::neighbours(*on_cell) & Grid::neighbours(*off_cell)))
-                } else if *on_cell == *off_cell {
-                    grid.num_candidates(*on_cell) == 2
-                } else {
-                    false
-                }
-            },
-            _ => unreachable!(),
-        }
-    }
-
-    fn is_linked_value_on_group_off(_grid: &Grid, value_on_node: &ChainNode, group_off_node: &ChainNode) -> bool {
-        match (value_on_node, group_off_node) {
-            (ChainNode::Value { cell: on_cell, value: on_value }, ChainNode::Group { cells: off_cells, value: off_value, .. }) => {
-                *on_value == *off_value && Grid::neighbours(*on_cell).contains_all(*off_cells)
-            },
-            _ => unreachable!(),
-        }
-    }
-
-    fn is_linked_group_on_value_off(_grid: &Grid, group_on_node: &ChainNode, value_off_node: &ChainNode) -> bool {
-        match (group_on_node, value_off_node) {
-            (ChainNode::Group { cells: on_cells, value: on_value, .. }, ChainNode::Value { cell: off_cell, value: off_value }) => {
-                *on_value == *off_value && Grid::neighbours(*off_cell).contains_all(*on_cells)
-            },
-            _ => unreachable!(),
-        }
-    }
-
-    fn is_linked_value_off_group_on(grid: &Grid, value_off_node: &ChainNode, group_on_node: &ChainNode) -> bool {
-        match (value_off_node, group_on_node) {
-            (ChainNode::Value { cell: off_cell, value: off_value }, ChainNode::Group { line: on_line, block: on_block, cells: on_cells, value: on_value }) => {
-                if *on_value != *off_value { return false; }
-                if on_cells.contains(*off_cell) { return false; }
-                let peers = grid.cells_with_candidate_in_region(*off_value, Grid::neighbours(*off_cell));
-                (on_line.contains(*off_cell) && on_cells.contains_all(peers & on_line)) ||
-                (on_block.contains(*off_cell) && on_cells.contains_all(peers & on_block))
-            },
-            _ => unreachable!(),
-        }
-    }
-
-    fn is_linked_group_off_value_on(grid: &Grid, group_off_node: &ChainNode, value_on_node: &ChainNode) -> bool {
-        match (group_off_node, value_on_node) {
-            (ChainNode::Group { line: off_line, block: off_block, cells: off_cells, value: off_value }, ChainNode::Value { cell: on_cell, value: on_value }) => {
-                if *on_value != *off_value { return false; }
-                if off_cells.contains(*on_cell) { return false; }
-                let peers = grid.cells_with_candidate_in_region(*on_value, Grid::neighbours(*on_cell));
-                (off_line.contains(*on_cell) && off_cells.contains_all(peers & off_line)) ||
-                (off_block.contains(*on_cell) && off_cells.contains_all(peers & off_block))
-            },
-            _ => unreachable!(),
-        }
-    }
-
-    fn is_linked_group_on_group_off(_grid: &Grid, group_on_node: &ChainNode, group_off_node: &ChainNode) -> bool {
-        match (group_on_node, group_off_node) {
-            (ChainNode::Group { line: on_line, block: on_block, cells: on_cells, value: on_value }, ChainNode::Group { cells: off_cells, value: off_value, .. }) => {
-                *on_value == *off_value && (on_cells & off_cells).is_empty() && (on_line | on_block).contains_all(*off_cells)
-            },
-            _ => unreachable!(),
-        }
-    }
-
-    fn is_linked_group_off_group_on(grid: &Grid, group_on_node: &ChainNode, group_off_node: &ChainNode) -> bool {
-        match (group_off_node, group_on_node) {
-            (ChainNode::Group { line: off_line, block: off_block, cells: off_cells, value: off_value, .. }, ChainNode::Group { cells: on_cells, value: on_value, .. }) => {
-                if *on_value != *off_value { return false; }
-                (off_line.contains_all(*on_cells) && grid.cells_with_candidate_in_region(*off_value, off_line) == (off_cells | on_cells)) ||
-                (off_block.contains_all(*on_cells) && grid.cells_with_candidate_in_region(*off_value, off_block) == (off_cells | on_cells))
-            },
-            _ => unreachable!(),
-        }
-    }
-
-    fn is_linked_value_on_als_off(_grid: &Grid, value_on_node: &ChainNode, als_off_node: &ChainNode) -> bool {
-        match (value_on_node, als_off_node) {
-            (ChainNode::Value { cell: on_cell, value: on_value }, ChainNode::Als { cells_with_value: off_cells, value: off_value, .. }) => {
-                *on_value == *off_value && Grid::neighbours(*on_cell).contains_all(*off_cells)
-            },
-            _ => unreachable!(),
-        }
-    }
-
-    fn is_linked_als_on_value_off(_grid: &Grid, als_on_node: &ChainNode, value_off_node: &ChainNode) -> bool {
-        match (als_on_node, value_off_node) {
-            (ChainNode::Als { cells_with_value: on_cells, value: on_value, .. }, ChainNode::Value { cell: off_cell, value: off_value }) => {
-                *on_value == *off_value && Grid::neighbours(*off_cell).contains_all(*on_cells)
-            },
-            _ => unreachable!(),
-        }
-    }
-
-    fn is_linked_group_on_als_off(_grid: &Grid, group_on_node: &ChainNode, als_off_node: &ChainNode) -> bool {
-        match (group_on_node, als_off_node) {
-            (ChainNode::Group { cells: on_cells, value: on_value, line: on_line, block: on_block }, ChainNode::Als { cells_with_value: off_cells, value: off_value, .. }) => {
-                *on_value == *off_value && (on_cells & off_cells).is_empty() && (on_line | on_block).contains_all(*off_cells)
-            },
-            _ => unreachable!(),
-        }
-    }
-
-    fn is_linked_als_on_group_off(_grid: &Grid, als_on_node: &ChainNode, group_off_node: &ChainNode) -> bool {
-        match (als_on_node, group_off_node) {
-            (ChainNode::Als { cells_with_value: on_cells, value: on_value, .. }, ChainNode::Group { cells: off_cells, value: off_value, line: off_line, block: off_block }) => {
-                *on_value == *off_value && (on_cells & off_cells).is_empty() && (off_line | off_block).contains_all(*on_cells)
-            },
-            _ => unreachable!(),
-        }
-    }
-
-    fn is_linked_als_on_als_off(_grid: &Grid, als_on_node: &ChainNode, als_off_node: &ChainNode) -> bool {
-        match (als_on_node, als_off_node) {
-            (ChainNode::Als { cells_with_value: on_cells, value: on_value, .. }, ChainNode::Als { cells_with_value: off_cells, value: off_value, .. }) => {
-                if *on_value != *off_value { return false; }
-                let common_neighbours = CellSet::intersection(&on_cells.map(|ix| *Grid::neighbours(ix)));
-                common_neighbours.contains_all(*off_cells)
-            },
-            _ => unreachable!(),
-        }
-    }
-
-    fn is_linked_als_off_als_on(_grid: &Grid, als_off_node: &ChainNode, als_on_node: &ChainNode) -> bool {
-        match (als_off_node, als_on_node) {
-            (ChainNode::Als { cells: off_cells, value: off_value, .. }, ChainNode::Als { cells: on_cells, value: on_value, .. }) => {
-                *off_cells == *on_cells && *off_value != *on_value
-            },
-            _ => unreachable!(),
-        }  
-    }
-
 }
 
-impl Chaining for AicFinder {
+/// Search for AICs in the given grid, constructed from the given possible nodes.
+pub fn find_aics(grid: &Grid, nodes: Vec<ChainNode>) -> Vec<Aic> {
 
-    fn get_nodes(&self, grid: &Grid) -> Vec<ChainNode> {
-        let mut nodes = get_value_nodes(grid);
-        nodes.append(&mut get_group_nodes(grid));
-        nodes.append(&mut get_als_nodes(grid));
-        nodes
-    }
-
-    fn is_linked_on_to_off(&self, grid: &Grid, start_node: &ChainNode, end_node: &ChainNode) -> bool {
-        match (start_node, end_node) {
-            (ChainNode::Value { .. }, ChainNode::Value { .. }) => AicFinder::is_linked_value_on_value_off(grid, start_node, end_node),
-            (ChainNode::Value { .. }, ChainNode::Group { .. }) => AicFinder::is_linked_value_on_group_off(grid, start_node, end_node),
-            (ChainNode::Value { .. }, ChainNode::Als { .. }) => AicFinder::is_linked_value_on_als_off(grid, start_node, end_node),
-            (ChainNode::Group { .. }, ChainNode::Value { .. }) => AicFinder::is_linked_group_on_value_off(grid, start_node, end_node),
-            (ChainNode::Group { .. }, ChainNode::Group { .. }) => AicFinder::is_linked_group_on_group_off(grid, start_node, end_node),
-            (ChainNode::Group { .. }, ChainNode::Als { .. }) => AicFinder::is_linked_group_on_als_off(grid, start_node, end_node),
-            (ChainNode::Als { .. }, ChainNode::Value { .. }) => AicFinder::is_linked_als_on_value_off(grid, start_node, end_node),
-            (ChainNode::Als { .. }, ChainNode::Group { .. }) => AicFinder::is_linked_als_on_group_off(grid, start_node, end_node),
-            (ChainNode::Als { .. }, ChainNode::Als { .. }) => AicFinder::is_linked_als_on_als_off(grid, start_node, end_node),
-        }
-    }
-
-    fn is_linked_off_to_on(&self, grid: &Grid, start_node: &ChainNode, end_node: &ChainNode) -> bool {
-        match (start_node, end_node) {
-            (ChainNode::Value { .. }, ChainNode::Value { .. }) => AicFinder::is_linked_value_off_value_on(grid, start_node, end_node),
-            (ChainNode::Value { .. }, ChainNode::Group { .. }) => AicFinder::is_linked_value_off_group_on(grid, start_node, end_node),
-            (ChainNode::Value { .. }, ChainNode::Als { .. }) => false,
-            (ChainNode::Group { .. }, ChainNode::Value { .. }) => AicFinder::is_linked_group_off_value_on(grid, start_node, end_node),
-            (ChainNode::Group { .. }, ChainNode::Group { .. }) => AicFinder::is_linked_group_off_group_on(grid, start_node, end_node),
-            (ChainNode::Group { .. }, ChainNode::Als { .. }) => false,
-            (ChainNode::Als { .. }, ChainNode::Value { .. }) => false,
-            (ChainNode::Als { .. }, ChainNode::Group { .. }) => false,
-            (ChainNode::Als { .. }, ChainNode::Als { .. }) => AicFinder::is_linked_als_off_als_on(grid, start_node, end_node),
-        }
-    }
-
-}
-
-/// Get all `Value` chain nodes from the given grid.
-fn get_value_nodes(grid: &Grid) -> Vec<ChainNode> {
-    let mut value_nodes = Vec::new();
-    for cell in grid.empty_cells().iter() {
-        for candidate in grid.candidates(cell).iter() {
-            value_nodes.push(ChainNode::Value { cell, value: candidate });
-        }
-    }
-    value_nodes
-}
-
-/// Get all `Group` chain nodes from the given grid.
-fn get_group_nodes(grid: &Grid) -> Vec<ChainNode> {
-    let mut group_nodes = Vec::new();
-
-    // Intersections of rows and boxes
-    for row in Grid::rows() {
-        for block in Grid::blocks() {
-            let intersection = row & block;
-            for candidate in CandidateSet::full().iter() {
-                let cells_with_candidate = grid.cells_with_candidate_in_region(candidate, &intersection);
-                if cells_with_candidate.len() > 1 {
-                    group_nodes.push(ChainNode::Group { line: *row, block: *block, cells: cells_with_candidate, value: candidate });
-                }
+    // Create the adjacency lists for the given nodes. Each node is treated as two different
+    // vertices in the graph of linked inferences - one for the inference where the node is ON,
+    // and one for the inference where the node is OFF.
+    let mut adjacencies = vec![vec![]; 2 * nodes.len()];
+    for (start_idx, start_node) in nodes.iter().enumerate() {
+        for (end_idx, end_node) in nodes.iter().enumerate() {
+            if (start_idx != end_idx) && nodes::is_linked_on_to_off(grid, start_node, end_node) {
+                adjacencies[2 * start_idx].push(2 * end_idx + 1);
+            }
+            if (start_idx != end_idx) && nodes::is_linked_off_to_on(grid, start_node, end_node) {
+                adjacencies[2 * start_idx + 1].push(2 * end_idx);
             }
         }
     }
 
-    // Intersections of columns and boxes
-    for column in Grid::columns() {
-        for block in Grid::blocks() {
-            let intersection = column & block;
-            for candidate in CandidateSet::full().iter() {
-                let cells_with_candidate = grid.cells_with_candidate_in_region(candidate, &intersection);
-                if cells_with_candidate.len() > 1 {
-                    group_nodes.push(ChainNode::Group { line: *column, block: *block, cells: cells_with_candidate, value: candidate });
-                }
-            }
+    // For each node, decide which candidates would be eliminated if it were ON
+    let affected_candidates: Vec<_> = nodes.iter().map(|node| find_affected_candidates(grid, node)).collect();
+
+    // For each OFF version of a node, perform a breadth-first search and look for ON nodes that
+    // are a result, via an AIC, of the original OFF inference. If the OFF inference and the linked
+    // ON inference have any affected candidates in common, then they can be eliminated as a result
+    // of the chain.
+    let mut chains = Vec::new();
+    for start_idx in 0..nodes.len() {
+        for chain in breadth_first_search(&nodes, &adjacencies, &affected_candidates, start_idx) {
+            chains.push(chain);
         }
     }
 
-    group_nodes
+    chains.sort_by_key(|chain| chain.len());
+    chains
 }
 
-/// Get all `Als` chain nodes from the given grid.
-fn get_als_nodes(grid: &Grid) -> Vec<ChainNode> {
+/// Get the deductions arising from the given AIC.
+pub fn get_aic_deductions(grid: &Grid, aic: &Aic) -> Vec<Deduction> {
+    let (on_node, off_node) = (&aic[0].node, &aic[aic.len() - 1].node);
+    get_strong_link_deductions(grid, on_node, off_node)
+}
 
-    let mut als_nodes = Vec::new();
+/// Get a description of the given chain.
+pub fn get_aic_description(aic: &Aic) -> String {
+    let mut description = format!("{}", aic[0]);
+    for inference in aic.iter().skip(1) {
+        description.push_str(" --> ");
+        description.push_str(&format!("{}", inference));
+    }
+    description
+}
 
-    // ALSs within rows
-    for row in Grid::rows() {
-        let empty_cells = grid.empty_cells_in_region(row);
-        for degree in 2..empty_cells.len() {
-            for cells in empty_cells.iter().combinations(degree).map(CellSet::from_cells) {
-                let candidates = grid.all_candidates_from_region(&cells);
-                if candidates.len() == degree + 1 {
-                    for value in candidates.iter() {
-                        als_nodes.push(ChainNode::Als { cells, value, cells_with_value: grid.cells_with_candidate_in_region(value, &cells) });
-                    }
-                }
+/// Find candidates which would be eliminated as a result of the given node being ON
+fn find_affected_candidates(grid: &Grid, node: &ChainNode) -> HashSet<AffectedCandidate> {
+
+    let mut affected_candidates = HashSet::new();
+
+    // All cells which are in sight of every candidate that might be switched ON in this node is dead
+    let (value, value_cells) = (get_value(node), get_value_cells(node));
+    let common_neighbours = CellSet::intersection(&value_cells.map(|ix| *Grid::neighbours(ix)));
+    for cell in grid.cells_with_candidate_in_region(value, &common_neighbours).iter() {
+        affected_candidates.insert((cell, value));
+    }
+
+    // If this node is for a single cell, then every other candidate in that cell is dead
+    if value_cells.len() == 1 {
+        let cell = value_cells.first().unwrap();
+        for other_value in grid.candidates(cell).iter() {
+            if other_value != value {
+                affected_candidates.insert((cell, other_value));
             }
         }
     }
 
-    // ALSs within columns
-    for column in Grid::columns() {
-        let empty_cells = grid.empty_cells_in_region(column);
-        for degree in 2..empty_cells.len() {
-            for cells in empty_cells.iter().combinations(degree).map(CellSet::from_cells) {
-                let candidates = grid.all_candidates_from_region(&cells);
-                if candidates.len() == degree + 1 {
-                    for value in candidates.iter() {
-                        als_nodes.push(ChainNode::Als { cells, value, cells_with_value: grid.cells_with_candidate_in_region(value, &cells) });
-                    }
-                }
+    affected_candidates
+}
+
+/// Get the deductions that arise from a strong link between the two given nodes.
+fn get_strong_link_deductions(grid: &Grid, node1: &ChainNode, node2: &ChainNode) -> Vec<Deduction> {
+    let first_affected_candidates = find_affected_candidates(grid, node1);
+    let second_affected_candidates = find_affected_candidates(grid, node2);
+    let common_affected_candidates = first_affected_candidates.intersection(&second_affected_candidates);
+    common_affected_candidates.map(|&(cell, value)| Deduction::Elimination(cell, value)).collect()
+}
+
+/// Extract the value from a `ChainNode`
+fn get_value(node: &ChainNode) -> Candidate {
+    match node {
+        ChainNode::Value { value, .. } => *value,
+        ChainNode::Group { value, .. } => *value,
+        ChainNode::Als { value, .. } => *value,
+    }
+}
+
+/// Extract the cells with the right value from a `ChainNode`
+fn get_value_cells(node: &ChainNode) -> CellSet {
+    match node {
+        ChainNode::Value { cell, .. } => CellSet::from_cell(*cell),
+        ChainNode::Group { cells, .. } => *cells,
+        ChainNode::Als { cells_with_value, .. } => *cells_with_value,
+    }
+}
+
+/// Perform a breadth-first search looking for chains starting from the OFF version of the given node
+/// and ending in the ON version of another node, in such a way that eliminations result.
+fn breadth_first_search(nodes: &[ChainNode], adjacencies: &[Vec<usize>], affected_candidates: &[HashSet<AffectedCandidate>], start_idx: usize) -> Vec<Aic> {
+
+    // The current state of the search, and a record of how each node was reached
+    let (mut queue, mut visited, mut parents) = (VecDeque::new(), vec![false; adjacencies.len()], vec![0; adjacencies.len()]);
+    queue.push_back(2 * start_idx + 1); visited[2 * start_idx + 1] = true;
+
+    // Continue until we have exhausted all reachable endpoints
+    let mut chains = Vec::new();
+    while !queue.is_empty() {
+        let current_idx = queue.pop_front().unwrap();
+
+        // If we have a usable chain, then store it
+        if current_idx % 2 == 0 && !affected_candidates[current_idx / 2].is_disjoint(&affected_candidates[start_idx]) {
+            chains.push(create_chain(nodes, &parents, 2 * start_idx + 1, current_idx));
+        }
+
+        // Add all possible next nodes to the queue
+        for &next_idx in &adjacencies[current_idx] {
+            if !visited[next_idx] {
+                queue.push_back(next_idx); visited[next_idx] = true;
+                parents[next_idx] = current_idx;
             }
         }
     }
 
-    // ALSs within blocks, but not within a single row or column
-    for block in Grid::blocks() {
-        let empty_cells = grid.empty_cells_in_region(block);
-        for degree in 2..empty_cells.len() {
-            for cells in empty_cells.iter().combinations(degree).map(CellSet::from_cells) {
-                let candidates = grid.all_candidates_from_region(&cells);
-                if candidates.len() == degree + 1 && Grid::row_containing(&cells).is_none() && Grid::column_containing(&cells).is_none() {
-                    for value in candidates.iter() {
-                        als_nodes.push(ChainNode::Als { cells, value, cells_with_value: grid.cells_with_candidate_in_region(value, &cells) });
-                    }
-                }
-            }
-        }
-    }
+    chains
+}
 
-    als_nodes
+/// Translate a path found via breadth-first search into an actual chain
+fn create_chain(nodes: &[ChainNode], parents: &[usize], start_idx: usize, end_idx: usize) -> Aic {
+    let mut chain = Vec::new();
+    let (mut negated, mut current_idx) = (end_idx % 2 == 1, end_idx);
+    while current_idx != start_idx || chain.len() == 0 {
+        chain.push(AicInference { node: nodes[current_idx / 2].clone(), negated });
+        negated = !negated; current_idx = parents[current_idx];
+    }
+    chain.push(AicInference { node: nodes[current_idx / 2].clone(), negated });
+    chain.reverse();
+    chain
 }

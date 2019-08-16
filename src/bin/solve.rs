@@ -10,7 +10,7 @@ use rustdoku::solver;
 use rustdoku::solver::SolveConfiguration;
 
 fn main() {
-    
+
     let stdin = io::stdin();
     let config = SolveConfiguration::with_all_strategies();
 

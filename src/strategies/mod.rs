@@ -19,7 +19,7 @@ mod xy_chain;
 use grid::{CellIdx, Grid, Region};
 use grid::cellset::CellSet;
 use grid::candidateset::CandidateSet;
-use strategies::chaining::Chain;
+use strategies::chaining::Aic;
 use strategies::xy_chain::XYChain;
 
 use std::fmt;
@@ -51,9 +51,9 @@ pub enum Step {
     XYZWing { pivot: CellIdx, pincer1: CellIdx, pincer2: CellIdx, value: usize, },
     WWing { pincer1: CellIdx, pincer2: CellIdx, region: CellSet, covered_value: usize, eliminated_value: usize, },
     WXYZWing { cells: CellSet, value: usize },
-    XChain { chain: Chain },
+    XChain { chain: Aic },
     XYChain { chain: XYChain },
-    Aic { chain: Chain },
+    Aic { chain: Aic },
 }
 
 /// The different strategies available to the solver.
@@ -122,9 +122,9 @@ impl Strategy {
             Strategy::XYZWing => Box::new(xyz_wing::find(&grid)),
             Strategy::WWing => Box::new(w_wing::find(&grid)),
             Strategy::WXYZWing => Box::new(wxyz_wing::find(&grid)),
-            Strategy::XChain => Box::new(chaining::xchain::find(&grid)),
+            Strategy::XChain => Box::new(chaining::find_xchains(&grid)),
             Strategy::XYChain => Box::new(xy_chain::find(&grid)),
-            Strategy::Aic => Box::new(chaining::aic::find(&grid)),
+            Strategy::Aic => Box::new(chaining::find_aics(&grid)),
         }
     }
 }
@@ -149,9 +149,9 @@ impl Step {
             ref xyz_wing @ Step::XYZWing { .. } => xyz_wing::get_deductions(&grid, xyz_wing),
             ref w_wing @ Step::WWing { .. } => w_wing::get_deductions(&grid, w_wing),
             ref wxyz_wing @ Step::WXYZWing { .. } => wxyz_wing::get_deductions(&grid, &wxyz_wing),
-            Step::XChain { chain } => chaining::get_deductions(&grid, &chain),
+            Step::XChain { chain } => chaining::get_aic_deductions(&grid, &chain),
             ref xy_chain @ Step::XYChain { .. } => xy_chain::get_deductions(&grid, &xy_chain),
-            Step::Aic { chain } => chaining::get_deductions(&grid, &chain),
+            Step::Aic { chain } => chaining::get_aic_deductions(&grid, &chain),
         }
     }
 }
@@ -174,9 +174,9 @@ impl fmt::Display for Step {
             ref xyz_wing @ Step::XYZWing { .. } => write!(f, "{}", xyz_wing::get_description(&xyz_wing)),
             ref w_wing @ Step::WWing { .. } => write!(f, "{}", w_wing::get_description(&w_wing)),
             ref wxyz_wing @ Step::WXYZWing { .. } => write!(f, "{}", wxyz_wing::get_description(&wxyz_wing)),
-            Step::XChain { chain } => write!(f, "X-Chain - {}", chaining::get_description(chain)),
+            Step::XChain { chain } => write!(f, "X-Chain - {}", chaining::get_aic_description(chain)),
             ref xy_chain @ Step::XYChain { .. } => write!(f, "{}", xy_chain::get_description(&xy_chain)),
-            Step::Aic { chain } => write!(f, "AIC - {}", chaining::get_description(chain)),
+            Step::Aic { chain } => write!(f, "AIC - {}", chaining::get_aic_description(chain)),
         }
     }
 }
