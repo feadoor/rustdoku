@@ -11,7 +11,7 @@ use rustdoku::solver::{SolveConfiguration, SolveResult};
 use rustdoku::strategies::Strategy::*;
 
 fn main() {
-    
+
     let stdin = io::stdin();
 
     let singles_only = SolveConfiguration::with_strategies(vec![
@@ -24,7 +24,7 @@ fn main() {
 
 
     let basic_config = SolveConfiguration::with_strategies(vec![
-        FullHouse, HiddenSingle, NakedSingle, Pointing, Claiming, NakedSubset(2), NakedSubset(3), 
+        FullHouse, HiddenSingle, NakedSingle, Pointing, Claiming, NakedSubset(2), NakedSubset(3),
         NakedSubset(4), HiddenSubset(2), HiddenSubset(3), HiddenSubset(4),
     ]);
 
@@ -62,7 +62,7 @@ fn main() {
                 for deduction in step.get_deductions(&secondary_grid) {
                     secondary_grid.apply_deduction(deduction);
                 }
-                
+
                 let after_singles = solver::solve(&mut secondary_grid, &singles_only);
                 if let SolveResult::Solved = after_singles.result {
                     println!("{} - singles to the end", step);
@@ -75,7 +75,7 @@ fn main() {
                     continue;
                 }
 
-                let after_basics = solver::solve(&mut secondary_grid, &singles_and_line_box_only);
+                let after_basics = solver::solve(&mut secondary_grid, &basic_config);
                 if let SolveResult::Solved = after_basics.result {
                     println!("{} - basics to the end", step);
                     continue;
