@@ -7,7 +7,6 @@ use rustdoku::analyser::Criteria;
 use rustdoku::generator;
 use rustdoku::grid::Grid;
 use rustdoku::solver::SolveConfiguration;
-use rustdoku::strategies::Strategy::*;
 
 fn main() {
 
