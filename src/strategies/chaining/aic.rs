@@ -178,7 +178,7 @@ fn breadth_first_search(nodes: &[ChainNode], adjacencies: &[Vec<usize>], affecte
 fn create_chain(nodes: &[ChainNode], parents: &[usize], start_idx: usize, end_idx: usize) -> Aic {
     let mut chain = Vec::new();
     let (mut negated, mut current_idx) = (end_idx % 2 == 1, end_idx);
-    while current_idx != start_idx || chain.len() == 0 {
+    while current_idx != start_idx {
         chain.push(AicInference { node: nodes[current_idx / 2].clone(), negated });
         negated = !negated; current_idx = parents[current_idx];
     }
