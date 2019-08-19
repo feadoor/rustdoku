@@ -20,6 +20,7 @@ use grid::{CellIdx, Grid, Region};
 use grid::cellset::CellSet;
 use grid::candidateset::CandidateSet;
 use strategies::chaining::Aic;
+use strategies::chaining::ForcingChain;
 use strategies::xy_chain::XYChain;
 
 use std::fmt;
@@ -55,6 +56,8 @@ pub enum Step {
     XYChain { chain: XYChain },
     Aic { chain: Aic },
     AlsAic { chain: Aic },
+    ForcingChain { chain: ForcingChain },
+    AlsForcingChain { chain: ForcingChain },
 }
 
 /// The different strategies available to the solver.
@@ -77,6 +80,8 @@ pub enum Strategy {
     XYChain,
     Aic,
     AlsAic,
+    ForcingChain,
+    AlsForcingChain,
 }
 
 pub const ALL_STRATEGIES: &'static [Strategy] = &[
@@ -105,6 +110,8 @@ pub const ALL_STRATEGIES: &'static [Strategy] = &[
     Strategy::WXYZWing,
     Strategy::Aic,
     Strategy::AlsAic,
+    Strategy::ForcingChain,
+    Strategy::AlsForcingChain,
 ];
 
 impl Strategy {
@@ -129,6 +136,8 @@ impl Strategy {
             Strategy::XYChain => Box::new(xy_chain::find(&grid)),
             Strategy::Aic => Box::new(chaining::find_aics(&grid)),
             Strategy::AlsAic => Box::new(chaining::find_als_aics(&grid)),
+            Strategy::ForcingChain => Box::new(chaining::find_forcing_chains(&grid)),
+            Strategy::AlsForcingChain => Box::new(chaining::find_als_forcing_chains(&grid)),
         }
     }
 }
@@ -157,6 +166,8 @@ impl Step {
             ref xy_chain @ Step::XYChain { .. } => xy_chain::get_deductions(&grid, &xy_chain),
             Step::Aic { chain } => chaining::get_aic_deductions(&grid, &chain),
             Step::AlsAic { chain } => chaining::get_aic_deductions(&grid, &chain),
+            Step::ForcingChain { chain } => chaining::get_forcing_chain_deductions(&grid, &chain),
+            Step::AlsForcingChain { chain } => chaining::get_forcing_chain_deductions(&grid, &chain),
         }
     }
 }
@@ -183,6 +194,8 @@ impl fmt::Display for Step {
             ref xy_chain @ Step::XYChain { .. } => write!(f, "{}", xy_chain::get_description(&xy_chain)),
             Step::Aic { chain } => write!(f, "AIC - {}", chaining::get_aic_description(chain)),
             Step::AlsAic { chain } => write!(f, "ALS AIC - {}", chaining::get_aic_description(chain)),
+            Step::ForcingChain { chain } => write!(f, "Forcing Chain - {}", chaining::get_forcing_chain_description(chain)),
+            Step::AlsForcingChain { chain } => write!(f, "ALS Forcing Chain - {}", chaining::get_forcing_chain_description(chain)),
         }
     }
 }

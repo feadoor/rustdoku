@@ -208,7 +208,11 @@ pub fn get_als_nodes(grid: &Grid) -> Vec<ChainNode> {
 fn is_linked_value_on_value_off(_grid: &Grid, value_on_node: &ChainNode, value_off_node: &ChainNode) -> bool {
     match (value_on_node, value_off_node) {
         (ChainNode::Value { cell: on_cell, value: on_value }, ChainNode::Value { cell: off_cell, value: off_value }) => {
-            *on_value == *off_value && Grid::neighbours(*on_cell).contains(*off_cell)
+            if *on_value == *off_value {
+                Grid::neighbours(*on_cell).contains(*off_cell)
+            } else {
+                *on_cell == *off_cell
+            }
         },
         _ => unreachable!(),
     }
@@ -296,7 +300,11 @@ fn is_linked_group_off_group_on(grid: &Grid, group_on_node: &ChainNode, group_of
 fn is_linked_value_on_als_off(_grid: &Grid, value_on_node: &ChainNode, als_off_node: &ChainNode) -> bool {
     match (value_on_node, als_off_node) {
         (ChainNode::Value { cell: on_cell, value: on_value }, ChainNode::Als { cells_with_value: off_cells, value: off_value, .. }) => {
-            *on_value == *off_value && Grid::neighbours(*on_cell).contains_all(*off_cells)
+            if *on_value == *off_value {
+                Grid::neighbours(*on_cell).contains_all(*off_cells)
+            } else {
+                CellSet::from_cell(*on_cell) == *off_cells
+            }
         },
         _ => unreachable!(),
     }
@@ -305,7 +313,11 @@ fn is_linked_value_on_als_off(_grid: &Grid, value_on_node: &ChainNode, als_off_n
 fn is_linked_als_on_value_off(_grid: &Grid, als_on_node: &ChainNode, value_off_node: &ChainNode) -> bool {
     match (als_on_node, value_off_node) {
         (ChainNode::Als { cells_with_value: on_cells, value: on_value, .. }, ChainNode::Value { cell: off_cell, value: off_value }) => {
-            *on_value == *off_value && Grid::neighbours(*off_cell).contains_all(*on_cells)
+            if *on_value == *off_value {
+                Grid::neighbours(*off_cell).contains_all(*on_cells)
+            } else {
+                CellSet::from_cell(*off_cell) == *on_cells
+            }
         },
         _ => unreachable!(),
     }
@@ -332,9 +344,12 @@ fn is_linked_als_on_group_off(_grid: &Grid, als_on_node: &ChainNode, group_off_n
 fn is_linked_als_on_als_off(_grid: &Grid, als_on_node: &ChainNode, als_off_node: &ChainNode) -> bool {
     match (als_on_node, als_off_node) {
         (ChainNode::Als { cells_with_value: on_cells, value: on_value, .. }, ChainNode::Als { cells_with_value: off_cells, value: off_value, .. }) => {
-            if *on_value != *off_value { return false; }
-            let common_neighbours = CellSet::intersection(&on_cells.map(|ix| *Grid::neighbours(ix)));
-            common_neighbours.contains_all(*off_cells)
+            if *on_value != *off_value { 
+                on_cells.len() == 1 && *on_cells == *off_cells
+            } else {
+                let common_neighbours = CellSet::intersection(&on_cells.map(|ix| *Grid::neighbours(ix)));
+                common_neighbours.contains_all(*off_cells)
+            }
         },
         _ => unreachable!(),
     }
