@@ -1,6 +1,7 @@
 //! Common elements of chaining strategies
 
 mod aic;
+mod forcing;
 mod nodes;
 
 use grid::Grid;

@@ -1,4 +1,12 @@
-//! Strategies that look for AICs in a grid
+//! Strategies that look for AICs in a grid.
+//!
+//! An AIC (Alternating Inference Chain) is a pattern that consists of a chain of logical
+//! inferences, each following form the previous, and alternating between positive and negative
+//! statements about the grid.
+//!
+//! In such a chain that begins with a negative inference and ends with a positive one, one of the
+//! two endpoints must be true. If those two endpoints have common peers, those peers can be
+//! eliminated from the grid.
 
 use grid::{Candidate, CellIdx, Grid};
 use grid::cellset::CellSet;
