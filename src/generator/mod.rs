@@ -7,6 +7,7 @@ mod solution_generator;
 
 use rand::prelude::*;
 
+pub use generator::canonicalization::*;
 use generator::solution_generator::generate_solved_grid;
 use generator::patterns::PatternPuzzlesIterator;
 use utils::GeneratorAdapter;
