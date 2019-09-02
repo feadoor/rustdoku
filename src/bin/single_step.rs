@@ -24,8 +24,8 @@ fn main() {
 
 
     let basic_config = SolveConfiguration::with_strategies(vec![
-        FullHouse, HiddenSingle, NakedSingle, Pointing, Claiming, NakedSubset(2), NakedSubset(3),
-        NakedSubset(4), HiddenSubset(2), HiddenSubset(3), HiddenSubset(4),
+        FullHouse, HiddenSingle, NakedSingle, Pointing, Claiming, NakedSubset(2), HiddenSubset(2),
+        NakedSubset(3), HiddenSubset(3), NakedSubset(4), HiddenSubset(4),
     ]);
 
     let full_config = SolveConfiguration::with_all_strategies();

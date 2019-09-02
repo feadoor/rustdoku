@@ -638,7 +638,7 @@ const POSSIBLE_GUESSES_FOR_MASK: &'static[&'static[DigitMask]; MASKS] = &[
     &[1, 2, 4, 8, 16, 32, 64, 128, 256],
 ];
 
-const NEIGHBOURS_FOR_CELL: &'static[&'static[Cell; NEIGHBOURS]; CELLS] = &[
+pub const NEIGHBOURS_FOR_CELL: &'static[&'static[Cell; NEIGHBOURS]; CELLS] = &[
     &[9, 18, 27, 36, 45, 54, 63, 72, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 19, 20],
     &[10, 19, 28, 37, 46, 55, 64, 73, 0, 2, 3, 4, 5, 6, 7, 8, 9, 11, 18, 20],
     &[11, 20, 29, 38, 47, 56, 65, 74, 0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 18, 19],

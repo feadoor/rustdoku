@@ -2,21 +2,12 @@
 
 extern crate rustdoku;
 
-use rustdoku::analyser;
-use rustdoku::analyser::Criteria;
 use rustdoku::generator;
-use rustdoku::grid::Grid;
-use rustdoku::solver::SolveConfiguration;
 
 fn main() {
 
-    let unsolvable = Criteria::not_solvable_with(SolveConfiguration::with_all_strategies());
-
-    loop {
-        let clues = generator::generate_minimal_symmetric_puzzle();
-        let grid = Grid::from_clues(&clues).unwrap();
-        if analyser::meets_criteria(&grid, &unsolvable) {
-            println!("{}", clues.iter().map(|x| x.to_string()).collect::<String>());
-        }
+    let pattern = vec![8, 11, 14, 15, 18, 22, 25, 28, 30, 32, 35, 38, 40, 42, 45, 48, 50, 52, 55, 58, 62, 65, 66, 69, 72];
+    for clues in generator::generate_puzzles_with_pattern(pattern.clone()) {
+        println!("{}", clues.iter().map(|x| x.to_string()).collect::<String>());
     }
 }
