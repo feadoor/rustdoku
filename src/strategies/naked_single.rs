@@ -1,6 +1,6 @@
 //! A definition of the naked single strategy.
 
-use grid::Grid;
+use grid::{Grid, GridSize};
 use strategies::{Deduction, Step};
 use utils::GeneratorAdapter;
 
@@ -8,28 +8,29 @@ use utils::GeneratorAdapter;
 ///
 /// A naked single is when a given cell has only one candidate that it can contain. Then that value
 /// can be placed in the cell.
-pub fn find<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
+pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
     GeneratorAdapter::of(move || {
+
         // Scan each cell and check if it is a naked single.
-        for cell_idx in Grid::cells().iter() {
+        for cell in grid.cells().iter() {
 
             // Also put in a check for cells that have no candidates remaining.
-            if grid.num_candidates(cell_idx) == 0 && grid.is_empty(cell_idx) {
-                yield Step::NoCandidatesForCell{ cell: cell_idx };
+            if grid.num_candidates(cell) == 0 && grid.is_empty(cell) {
+                yield Step::NoCandidatesForCell{ cell: cell };
             }
 
             // Check for a naked single deduction.
-            if grid.num_candidates(cell_idx) == 1 {
-                let val = grid.first_candidate(cell_idx).unwrap();
-                yield Step::NakedSingle{ cell: cell_idx, value: val };
+            if grid.num_candidates(cell) == 1 {
+                let val = grid.first_candidate(cell).unwrap();
+                yield Step::NakedSingle{ cell: cell, value: val };
             }
         }
     })
 }
 
 /// Get the deductions arising from the naked single on the given grid.
-pub fn get_deductions(_grid: &Grid, naked_single: &Step) -> Vec<Deduction> {
+pub fn get_deductions<T: GridSize>(_grid: &Grid<T>, naked_single: &Step<T>) -> Vec<Deduction> {
     match *naked_single {
         Step::NakedSingle { cell, value } => vec![ Deduction::Placement(cell, value) ],
         _ => unreachable!(),
@@ -37,11 +38,11 @@ pub fn get_deductions(_grid: &Grid, naked_single: &Step) -> Vec<Deduction> {
 }
 
 /// Get a concise description of this step, to be used in a description of a solution path.
-pub fn get_description(naked_single: &Step) -> String {
+pub fn get_description<T: GridSize>(grid: &Grid<T>, naked_single: &Step<T>) -> String {
     match *naked_single {
         Step::NakedSingle { cell, value } => format!(
             "Naked Single - {} can only contain {}",
-            Grid::cell_name(cell), value,
+            grid.cell_name(cell), value,
         ),
         _ => unreachable!(),
     }

@@ -3,8 +3,7 @@
 mod full_house;
 mod hidden_single;
 mod naked_single;
-mod pointing;
-mod claiming;
+mod box_line;
 mod naked_subset;
 mod hidden_subset;
 mod basic_fish;
@@ -16,14 +15,12 @@ mod wxyz_wing;
 mod chaining;
 mod xy_chain;
 
-use grid::{CellIdx, Grid, Region};
+use grid::{CellIdx, Grid, GridSize, RowOrColumn};
 use grid::cellset::CellSet;
 use grid::candidateset::CandidateSet;
 use strategies::chaining::Aic;
 use strategies::chaining::ForcingChain;
 use strategies::xy_chain::XYChain;
-
-use std::fmt;
 
 /// The different types of deduction that can be made on a grid.
 pub enum Deduction {
@@ -36,28 +33,27 @@ pub enum Deduction {
 }
 
 /// A step to be taken in the process of solving a given grid.
-pub enum Step {
+pub enum Step<T: GridSize> {
     NoCandidatesForCell { cell: CellIdx },
-    NoPlaceForCandidateInRegion { region: CellSet, value: usize},
-    FullHouse { region: CellSet, cell: CellIdx, value: usize, },
-    HiddenSingle { region: CellSet, cell: CellIdx, value: usize, },
+    NoPlaceForCandidateInRegion { region: CellSet<T>, value: usize},
+    FullHouse { region: CellSet<T>, cell: CellIdx, value: usize, },
+    HiddenSingle { region: CellSet<T>, cell: CellIdx, value: usize, },
     NakedSingle { cell: CellIdx, value: usize, },
-    Pointing { block: CellSet, region: CellSet, value: usize, },
-    Claiming { region: CellSet, block: CellSet, value: usize, },
-    HiddenSubset { region: CellSet, cells: CellSet, values: CandidateSet, },
-    NakedSubset { region: CellSet, cells: CellSet, values: CandidateSet, },
-    Fish { degree: usize, base_type: Region, base: CellSet, cover: CellSet, value: usize, },
-    FinnedFish { degree: usize, base_type: Region, base: CellSet, cover: CellSet, fins: CellSet, value: usize, },
+    BoxLine { region: CellSet<T>, neighbours: CellSet<T>, value: usize, },
+    HiddenSubset { region: CellSet<T>, cells: CellSet<T>, values: CandidateSet<T>, },
+    NakedSubset { region: CellSet<T>, cells: CellSet<T>, values: CandidateSet<T>, },
+    Fish { degree: usize, base_type: RowOrColumn, base: CellSet<T>, cover: CellSet<T>, value: usize, },
+    FinnedFish { degree: usize, base_type: RowOrColumn, base: CellSet<T>, cover: CellSet<T>, fins: CellSet<T>, value: usize, },
     XYWing { pivot: CellIdx, pincer1: CellIdx, pincer2: CellIdx, value: usize, },
     XYZWing { pivot: CellIdx, pincer1: CellIdx, pincer2: CellIdx, value: usize, },
-    WWing { pincer1: CellIdx, pincer2: CellIdx, region: CellSet, covered_value: usize, eliminated_value: usize, },
-    WXYZWing { cells: CellSet, value: usize },
-    XChain { chain: Aic },
+    WWing { pincer1: CellIdx, pincer2: CellIdx, region: CellSet<T>, covered_value: usize, eliminated_value: usize, },
+    WXYZWing { cells: CellSet<T>, value: usize },
+    XChain { chain: Aic<T> },
     XYChain { chain: XYChain },
-    Aic { chain: Aic },
-    AlsAic { chain: Aic },
-    ForcingChain { chain: ForcingChain },
-    AlsForcingChain { chain: ForcingChain },
+    Aic { chain: Aic<T> },
+    AlsAic { chain: Aic<T> },
+    ForcingChain { chain: ForcingChain<T> },
+    AlsForcingChain { chain: ForcingChain<T> },
 }
 
 /// The different strategies available to the solver.
@@ -66,8 +62,7 @@ pub enum Strategy {
     FullHouse,
     HiddenSingle,
     NakedSingle,
-    Pointing,
-    Claiming,
+    BoxLine,
     HiddenSubset(usize),
     NakedSubset(usize),
     Fish(usize),
@@ -88,8 +83,7 @@ pub const ALL_STRATEGIES: &'static [Strategy] = &[
     Strategy::FullHouse,
     Strategy::HiddenSingle,
     Strategy::NakedSingle,
-    Strategy::Pointing,
-    Strategy::Claiming,
+    Strategy::BoxLine,
     Strategy::NakedSubset(2),
     Strategy::HiddenSubset(2),
     Strategy::NakedSubset(3),
@@ -117,13 +111,12 @@ pub const ALL_STRATEGIES: &'static [Strategy] = &[
 impl Strategy {
 
     /// Find a step arising from the chosen strategy.
-    pub fn find_steps<'a>(&self, grid: &'a Grid) -> Box<dyn Iterator<Item = Step> + 'a> {
+    pub fn find_steps<'a, T: GridSize>(&self, grid: &'a Grid<T>) -> Box<dyn Iterator<Item = Step<T>> + 'a> {
         match *self {
             Strategy::FullHouse => Box::new(full_house::find(&grid)),
             Strategy::HiddenSingle => Box::new(hidden_single::find(&grid)),
             Strategy::NakedSingle => Box::new(naked_single::find(&grid)),
-            Strategy::Pointing => Box::new(pointing::find(&grid)),
-            Strategy::Claiming => Box::new(claiming::find(&grid)),
+            Strategy::BoxLine => Box::new(box_line::find(&grid)),
             Strategy::HiddenSubset(sz) => Box::new(hidden_subset::find_with_degree(&grid, sz)),
             Strategy::NakedSubset(sz) => Box::new(naked_subset::find_with_degree(&grid, sz)),
             Strategy::Fish(sz) => Box::new(basic_fish::find_with_degree(&grid, sz)),
@@ -142,60 +135,57 @@ impl Strategy {
     }
 }
 
-impl Step {
+impl <T: GridSize> Step<T> {
 
     /// Find the deductions given by the step.
-    pub fn get_deductions(&self, grid: &Grid) -> Vec<Deduction> {
+    pub fn get_deductions(&self, grid: &Grid<T>) -> Vec<Deduction> {
         match self {
             Step::NoCandidatesForCell { .. } => vec![Deduction::Contradiction],
             Step::NoPlaceForCandidateInRegion { .. } => vec![Deduction::Contradiction],
-            ref full_house @ Step::FullHouse { .. } => full_house::get_deductions(&grid, full_house),
-            ref hidden_single @ Step::HiddenSingle { .. } => hidden_single::get_deductions(&grid, hidden_single),
-            ref naked_single @ Step::NakedSingle { .. } => naked_single::get_deductions(&grid, naked_single),
-            ref pointing @ Step::Pointing { .. } => pointing::get_deductions(&grid, pointing),
-            ref claiming @ Step::Claiming { .. } => claiming::get_deductions(&grid, claiming),
-            ref hidden_subset @ Step::HiddenSubset { .. } => hidden_subset::get_deductions(&grid, hidden_subset),
-            ref naked_subset @ Step::NakedSubset { .. } => naked_subset::get_deductions(&grid, naked_subset),
-            ref fish @ Step::Fish { .. } => basic_fish::get_deductions(&grid, fish),
-            ref finned_fish @ Step::FinnedFish { .. } => finned_fish::get_deductions(&grid, finned_fish),
-            ref xy_wing @ Step::XYWing { .. } => xy_wing::get_deductions(&grid, xy_wing),
-            ref xyz_wing @ Step::XYZWing { .. } => xyz_wing::get_deductions(&grid, xyz_wing),
-            ref w_wing @ Step::WWing { .. } => w_wing::get_deductions(&grid, w_wing),
-            ref wxyz_wing @ Step::WXYZWing { .. } => wxyz_wing::get_deductions(&grid, &wxyz_wing),
-            Step::XChain { chain } => chaining::get_aic_deductions(&grid, &chain),
-            ref xy_chain @ Step::XYChain { .. } => xy_chain::get_deductions(&grid, &xy_chain),
-            Step::Aic { chain } => chaining::get_aic_deductions(&grid, &chain),
-            Step::AlsAic { chain } => chaining::get_aic_deductions(&grid, &chain),
-            Step::ForcingChain { chain } => chaining::get_forcing_chain_deductions(&grid, &chain),
-            Step::AlsForcingChain { chain } => chaining::get_forcing_chain_deductions(&grid, &chain),
+            ref full_house @ Step::FullHouse { .. } => full_house::get_deductions(grid, full_house),
+            ref hidden_single @ Step::HiddenSingle { .. } => hidden_single::get_deductions(grid, hidden_single),
+            ref naked_single @ Step::NakedSingle { .. } => naked_single::get_deductions(grid, naked_single),
+            ref box_line @ Step::BoxLine { .. } => box_line::get_deductions(grid, box_line),
+            ref hidden_subset @ Step::HiddenSubset { .. } => hidden_subset::get_deductions(grid, hidden_subset),
+            ref naked_subset @ Step::NakedSubset { .. } => naked_subset::get_deductions(grid, naked_subset),
+            ref fish @ Step::Fish { .. } => basic_fish::get_deductions(grid, fish),
+            ref finned_fish @ Step::FinnedFish { .. } => finned_fish::get_deductions(grid, finned_fish),
+            ref xy_wing @ Step::XYWing { .. } => xy_wing::get_deductions(grid, xy_wing),
+            ref xyz_wing @ Step::XYZWing { .. } => xyz_wing::get_deductions(grid, xyz_wing),
+            ref w_wing @ Step::WWing { .. } => w_wing::get_deductions(grid, w_wing),
+            ref wxyz_wing @ Step::WXYZWing { .. } => wxyz_wing::get_deductions(grid, wxyz_wing),
+            Step::XChain { chain } => chaining::get_aic_deductions(grid, chain),
+            ref xy_chain @ Step::XYChain { .. } => xy_chain::get_deductions(grid, xy_chain),
+            Step::Aic { chain } => chaining::get_aic_deductions(grid, chain),
+            Step::AlsAic { chain } => chaining::get_aic_deductions(grid, chain),
+            Step::ForcingChain { chain } => chaining::get_forcing_chain_deductions(grid, chain),
+            Step::AlsForcingChain { chain } => chaining::get_forcing_chain_deductions(grid, chain),
         }
     }
-}
 
-impl fmt::Display for Step {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    /// Get a readable description of the step.
+    pub fn get_description(&self, grid: &Grid<T>) -> String {
         match self {
-            Step::NoCandidatesForCell { cell } => write!(f, "No candidates remain for cell {}", Grid::cell_name(*cell)),
-            Step::NoPlaceForCandidateInRegion { region, value } => write!(f, "No place for {} in {}", value, Grid::region_name(&region)),
-            ref full_house @ Step::FullHouse { .. } => write!(f, "{}", full_house::get_description(&full_house)),
-            ref hidden_single @ Step::HiddenSingle { .. } => write!(f, "{}", hidden_single::get_description(&hidden_single)),
-            ref naked_single @ Step::NakedSingle { .. } => write!(f, "{}", naked_single::get_description(&naked_single)),
-            ref pointing @ Step::Pointing { .. } => write!(f, "{}", pointing::get_description(&pointing)),
-            ref claiming @ Step::Claiming { .. } => write!(f, "{}", claiming::get_description(&claiming)),
-            ref hidden_subset @ Step::HiddenSubset { .. } => write!(f, "{}", hidden_subset::get_description(&hidden_subset)),
-            ref naked_subset @ Step::NakedSubset { .. } => write!(f, "{}", naked_subset::get_description(&naked_subset)),
-            ref fish @ Step::Fish { .. } => write!(f, "{}", basic_fish::get_description(&fish)),
-            ref finned_fish @ Step::FinnedFish { .. } => write!(f, "{}", finned_fish::get_description(&finned_fish)),
-            ref xy_wing @ Step::XYWing { .. } => write!(f, "{}", xy_wing::get_description(&xy_wing)),
-            ref xyz_wing @ Step::XYZWing { .. } => write!(f, "{}", xyz_wing::get_description(&xyz_wing)),
-            ref w_wing @ Step::WWing { .. } => write!(f, "{}", w_wing::get_description(&w_wing)),
-            ref wxyz_wing @ Step::WXYZWing { .. } => write!(f, "{}", wxyz_wing::get_description(&wxyz_wing)),
-            Step::XChain { chain } => write!(f, "X-Chain - {}", chaining::get_aic_description(chain)),
-            ref xy_chain @ Step::XYChain { .. } => write!(f, "{}", xy_chain::get_description(&xy_chain)),
-            Step::Aic { chain } => write!(f, "AIC - {}", chaining::get_aic_description(chain)),
-            Step::AlsAic { chain } => write!(f, "ALS AIC - {}", chaining::get_aic_description(chain)),
-            Step::ForcingChain { chain } => write!(f, "Forcing Chain - {}", chaining::get_forcing_chain_description(chain)),
-            Step::AlsForcingChain { chain } => write!(f, "ALS Forcing Chain - {}", chaining::get_forcing_chain_description(chain)),
+            Step::NoCandidatesForCell { cell } => format!("No candidates remain for cell {}", grid.cell_name(*cell)),
+            Step::NoPlaceForCandidateInRegion { region, value } => format!("No place for {} in {}", value, grid.region_name(&region)),
+            ref full_house @ Step::FullHouse { .. } => format!("{}", full_house::get_description(grid, full_house)),
+            ref hidden_single @ Step::HiddenSingle { .. } => format!("{}", hidden_single::get_description(grid, hidden_single)),
+            ref naked_single @ Step::NakedSingle { .. } => format!("{}", naked_single::get_description(grid, naked_single)),
+            ref box_line @ Step::BoxLine { .. } => format!("{}", box_line::get_description(grid, box_line)),
+            ref hidden_subset @ Step::HiddenSubset { .. } => format!("{}", hidden_subset::get_description(grid, hidden_subset)),
+            ref naked_subset @ Step::NakedSubset { .. } => format!("{}", naked_subset::get_description(grid, naked_subset)),
+            ref fish @ Step::Fish { .. } => format!("{}", basic_fish::get_description(grid, fish)),
+            ref finned_fish @ Step::FinnedFish { .. } => format!("{}", finned_fish::get_description(grid, finned_fish)),
+            ref xy_wing @ Step::XYWing { .. } => format!("{}", xy_wing::get_description(grid, xy_wing)),
+            ref xyz_wing @ Step::XYZWing { .. } => format!("{}", xyz_wing::get_description(grid, xyz_wing)),
+            ref w_wing @ Step::WWing { .. } => format!("{}", w_wing::get_description(grid, w_wing)),
+            ref wxyz_wing @ Step::WXYZWing { .. } => format!("{}", wxyz_wing::get_description(grid, wxyz_wing)),
+            Step::XChain { chain } => format!("X-Chain - {}", chaining::get_aic_description(grid, chain)),
+            ref xy_chain @ Step::XYChain { .. } => format!("{}", xy_chain::get_description(grid, xy_chain)),
+            Step::Aic { chain } => format!("AIC - {}", chaining::get_aic_description(grid, chain)),
+            Step::AlsAic { chain } => format!("ALS AIC - {}", chaining::get_aic_description(grid, chain)),
+            Step::ForcingChain { chain } => format!("Forcing Chain - {}", chaining::get_forcing_chain_description(grid, chain)),
+            Step::AlsForcingChain { chain } => format!("ALS Forcing Chain - {}", chaining::get_forcing_chain_description(grid, chain)),
         }
     }
 }

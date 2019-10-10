@@ -2,7 +2,7 @@
 
 use itertools::Itertools;
 
-use grid::Grid;
+use grid::{Grid, GridSize};
 use grid::candidateset::CandidateSet;
 use grid::cellset::CellSet;
 use strategies::{Deduction, Step};
@@ -12,12 +12,13 @@ use utils::GeneratorAdapter;
 ///
 /// A hidden subset is when, in a particular region, n values can only appear in n cells. Then
 /// other values can be eliminated from those cells.
-pub fn find_with_degree<'a>(grid: &'a Grid, degree: usize) -> impl Iterator<Item = Step> + 'a {
+pub fn find_with_degree<'a, T: GridSize>(grid: &'a Grid<T>, degree: usize) -> impl Iterator<Item = Step<T>> + 'a {
 
     GeneratorAdapter::of(move || {
+
         // Iterate over all regions of the grid and all tuples of values.
-        for region in Grid::regions() {
-            for candidates in grid.missing_values_from_region(region).iter().combinations(degree).map(CandidateSet::from_candidates) {
+        for region in grid.all_regions() {
+            for candidates in grid.values_missing_from_region(region).iter().combinations(degree).map(CandidateSet::from_candidates) {
 
                 // Take the collection of cells which contain these candidates.
                 let cells = grid.cells_with_candidates_in_region(&candidates, region);
@@ -25,7 +26,7 @@ pub fn find_with_degree<'a>(grid: &'a Grid, degree: usize) -> impl Iterator<Item
                 // Check if the candidates appear in the right number of cells and if any eliminations will occur.
                 if cells.len() == degree {
                     if cells.iter().any(|cell| !(grid.candidates(cell) & !candidates).is_empty()) {
-                        yield Step::HiddenSubset { region: *region, cells: cells, values: candidates };
+                        yield Step::HiddenSubset { region: region.clone(), cells: cells.clone(), values: candidates };
                     }
                 }
             }
@@ -34,19 +35,19 @@ pub fn find_with_degree<'a>(grid: &'a Grid, degree: usize) -> impl Iterator<Item
 }
 
 /// Get the deductions arising from the hidden subset on the given grid.
-pub fn get_deductions(grid: &Grid, hidden_subset: &Step) -> Vec<Deduction> {
-    match *hidden_subset {
-        Step::HiddenSubset { region: _, cells, values } => _get_deductions(grid, &cells, &values),
+pub fn get_deductions<T: GridSize>(grid: &Grid<T>, hidden_subset: &Step<T>) -> Vec<Deduction> {
+    match hidden_subset {
+        Step::HiddenSubset { region: _, cells, values } => _get_deductions(grid, cells, values),
         _ => unreachable!(),
     }
 }
 
 /// Get a concise description of this step, to be used in a description of a solution path.
-pub fn get_description(hidden_subset: &Step) -> String {
-    match *hidden_subset {
+pub fn get_description<T: GridSize>(grid: &Grid<T>, hidden_subset: &Step<T>) -> String {
+    match hidden_subset {
         Step::HiddenSubset { region, cells, values } => format!(
             "Hidden {} - {} in {} {}",
-            get_subset_name(cells.len()), values, Grid::region_name(&region), cells,
+            get_subset_name(cells.len()), values, grid.region_name(region), grid.region_name(cells),
         ),
         _ => unreachable!(),
     }
@@ -61,7 +62,7 @@ fn get_subset_name<'a>(size: usize) -> &'a str {
     }
 }
 
-fn _get_deductions(grid: &Grid, cells: &CellSet, candidates: &CandidateSet) -> Vec<Deduction> {
+fn _get_deductions<T: GridSize>(grid: &Grid<T>, cells: &CellSet<T>, candidates: &CandidateSet<T>) -> Vec<Deduction> {
 
     let mut deductions = Vec::new();
 

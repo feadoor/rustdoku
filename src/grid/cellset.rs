@@ -1,317 +1,321 @@
-//! A structure which stores sets of cells within the grid as bitmasks.
-
-use std::fmt;
-use std::ops::{BitAnd, BitOr, BitXor, Not};
-use std::ops::{BitAndAssign, BitOrAssign, BitXorAssign};
+// ! A structure which stores sets of cells within the grid as bitmasks.
 
 use grid::CellIdx;
-use grid::Grid;
-use grid::Region;
-use grid::Region::*;
+use grid::fixed_size::GridSize;
+use std::marker::PhantomData;
+use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
 /// A set of cells from a Sudoku grid, represented internally as a bitmask.
-#[derive(Eq, PartialEq, Clone, Copy)]
-pub struct CellSet {
-    /// The high order bits of the bitmask.
-    pub hi: u64,
-    /// The low order bits of the bitmask.
-    pub lo: u64,
+#[derive(Eq, PartialEq, Clone, Hash)]
+pub struct CellSet<T: GridSize> {
+
+    /// A bitmask representing the cells contained in this `CellSet`
+    bits: Vec<u64>,
+
+    /// Phantom data since the generic type is purely for compile-time safety
+    size: PhantomData<T>,
 }
 
 /// A structure capable of iterating over the cells held in a `CellSet`.
 pub struct CellSetIterator {
-    /// The remaining cells, high order bits.
-    hi: u64,
-    /// The remaining cells, low order bits.
-    lo: u64,
-}
 
-impl fmt::Display for CellSet {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "({})", self.iter().map(|x| Grid::cell_name(x)).collect::<Vec<_>>().join(", "))
-    }
-}
-
-impl fmt::Debug for CellSet {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "({})", self.iter().map(|x| Grid::cell_name(x)).collect::<Vec<_>>().join(", "))
-    }
+    /// A bitmask representing the cells yet to be iterated over
+    bits: Vec<u64>,
 }
 
 impl Iterator for CellSetIterator {
+
     type Item = CellIdx;
 
     fn next(&mut self) -> Option<CellIdx> {
-        if self.lo != 0 {
-            let next = self.lo.trailing_zeros() as CellIdx;
-            self.lo &= self.lo - 1;
-            Some(next)
-        } else if self.hi != 0 {
-            let next = self.hi.trailing_zeros() as CellIdx + 64;
-            self.hi &= self.hi - 1;
-            Some(next)
+        if let Some(highest_order_bits) = self.bits.last() {
+            if *highest_order_bits == 0 {
+                self.bits.pop();
+                self.next()
+            } else {
+                let next = highest_order_bits.trailing_zeros() as CellIdx;
+                *self.bits.last_mut().unwrap() = highest_order_bits & highest_order_bits - 1;
+                Some(next + 64 * (self.bits.len() - 1))
+            }
         } else {
             None
         }
     }
 }
 
-impl CellSet {
-    /// Create a new `CellSet` with the high and low order bitmasks set to the given values.
-    pub fn new(hi: u64, lo: u64) -> CellSet {
+impl<T: GridSize> CellSet<T> {
+
+    /// Create an empty `CellSet`
+    pub fn empty() -> CellSet<T> {
         CellSet {
-            hi: hi,
-            lo: lo,
+            bits: vec![0; (T::size() * T::size() + 64 - 1) / 64],
+            size: PhantomData,
         }
     }
 
-    /// Create an empty `CellSet`.
-    pub fn empty() -> CellSet {
-        CellSet::new(0x0, 0x0)
-    }
-
-    /// Create a `CellSet` holding all cells.
-    pub fn full() -> CellSet {
+    /// Create a full `CellSet`
+    pub fn full() -> CellSet<T> {
         !CellSet::empty()
     }
 
-    /// Create a `CellSet` containing only the given single cell.
-    pub fn from_cell(cell: CellIdx) -> CellSet {
-        CellSet {
-            lo: if cell < 64 { 1 << cell } else { 0 },
-            hi: if cell >= 64 { 1 << (cell - 64) } else { 0 },
-        }
+    /// Create a new `CellSet` containing only the given single cell
+    pub fn from_cell(cell: CellIdx) -> CellSet<T> {
+        let mut cell_set = CellSet::empty();
+        cell_set.bits[cell / 64] = 1 << (cell % 64);
+        cell_set
     }
 
-    /// Create a `CellSet` containing the cells contained in the given iterator.
-    pub fn from_cells<I: IntoIterator<Item = CellIdx>>(cells: I) -> CellSet {
-        let mut lo = 0x0;
-        let mut hi = 0x0;
+    /// Create a new `CellSet` containing the given cells
+    pub fn from_cells<I: IntoIterator<Item = CellIdx>>(cells: I) -> CellSet<T> {
+        let mut cell_set = CellSet::empty();
         for cell in cells {
-            match cell {
-                0..=63 => lo |= 1 << cell,
-                64..=81 => hi |= 1 << (cell - 64),
-                _ => unreachable!(),
-            }
+            cell_set.bits[cell / 64] |= 1 << (cell % 64);
         }
-
-        CellSet {
-            hi: hi,
-            lo: lo,
-        }
+        cell_set
     }
 
-    /// An iterator over the cells held in this `CellSet`.
+    /// Add the given cell to this `CellSet`
+    pub fn add_cell(&mut self, cell: CellIdx) {
+        self.bits[cell / 64] |= 1 << (cell % 64);
+    }
+
+    /// Remove the given cell from this `CellSet`
+    pub fn remove_cell(&mut self, cell: CellIdx) {
+        self.bits[cell / 64] &= !(1 << (cell % 64));
+    }
+
+    /// An iterator over the cells held in this `CellSet`
     pub fn iter(&self) -> CellSetIterator {
         CellSetIterator {
-            hi: self.hi,
-            lo: self.lo,
+            bits: self.bits.clone(),
         }
     }
 
-    /// The number of cells contained in this `CellSet`.
+    /// The number of cells contained in this `CellSet`
     pub fn len(&self) -> usize {
-        self.hi.count_ones() as usize + self.lo.count_ones() as usize
+        self.bits.iter().map(|b| b.count_ones() as usize).sum()
     }
 
-    /// Check if this `CellSet` is empty.
+    /// Check if this `CellSet` is empty
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Get the first cell from this `CellSet`.
+    /// Get the first cell from this `CellSet`
     pub fn first(&self) -> Option<CellIdx> {
         self.iter().next()
     }
 
-    /// Determine whether this `CellSet` contains a particular cell or not.
+    /// Determine whether this `CellSet` contains a particular cell or not
     pub fn contains(&self, cell: CellIdx) -> bool {
-        match cell {
-            0..=63 => self.lo & (1 << cell) != 0,
-            64..=81 => self.hi & (1 << (cell - 64)) != 0,
-            _ => unreachable!(),
-        }
+        self.bits[cell / 64] & (1 << (cell % 64)) != 0
     }
 
-    /// Determine whether this `CellSet` contains another `CellSet` as a subset.
-    pub fn contains_all(&self, other: CellSet) -> bool {
-        ((self.lo & other.lo) == other.lo) && ((self.hi & other.hi) == other.hi)
+    /// Determine whether this `CellSet` contains another `CellSet` as a subset
+    pub fn contains_all(&self, other: &CellSet<T>) -> bool {
+        self.bits.iter()
+            .zip(other.bits.iter())
+            .all(|(&own_bits, &other_bits)| other_bits & own_bits == other_bits)
     }
 
     /// Produce the intersection of the given `CellSet`s
-    pub fn intersection(cell_sets: &[CellSet]) -> CellSet {
-        cell_sets.iter().fold(CellSet::full(), |acc, curr| acc & curr)
+    pub fn intersection(cell_sets: &[&CellSet<T>]) -> CellSet<T> {
+        cell_sets.iter().fold(CellSet::full(), |acc, curr| acc & *curr)
     }
 
     /// Produce the union of the given `CellSet`s
-    pub fn union(cell_sets: &[CellSet]) -> CellSet {
+    pub fn union(cell_sets: &[CellSet<T>]) -> CellSet<T> {
         cell_sets.iter().fold(CellSet::empty(), |acc, curr| acc | curr)
     }
 
-    /// Get a `CellSet` representing all common neighbours of the given cells.
-    pub fn common_neighbours(&self) -> CellSet {
-        self.iter().fold(CellSet::full(), |acc, cell| acc & Grid::neighbours(cell))
-    }
-
-    /// Group the cells in this `CellSet` by rows / columns / blocks.
-    pub fn group_by(&self, variety: Region) -> Vec<CellSet> {
-        let regions = match variety {
-            Row => Grid::rows(),
-            Column => Grid::columns(),
-            Block => Grid::blocks(),
-        };
-
-        regions.iter()
-            .map(|cells| cells & self)
-            .filter(|cells| !cells.is_empty())
-            .collect()
-    }
-
-    /// Filter this `CellSet` by a predicate.
-    pub fn filter<P>(&self, predicate: P) -> CellSet
-        where P: FnMut(&CellIdx) -> bool
-    {
+    /// Filter this `CellSet` by a predicate
+    pub fn filter<P: FnMut(&CellIdx) -> bool>(&self, predicate: P) -> CellSet<T> {
         CellSet::from_cells(self.iter().filter(predicate))
     }
 
-    /// Map the indices held in this `CellSet`.
-    pub fn map<B, F>(&self, f: F) -> Vec<B>
-        where F: FnMut(CellIdx) -> B
-    {
+    /// Map the indicates held in this `CellSet`
+    pub fn map<B, F: FnMut(CellIdx) -> B>(&self, f: F) -> Vec<B> {
         self.iter().map(f).collect()
     }
+
 }
 
 macro_rules! binop_from_ref_ref {
     ($t: ident, $f: ident) => {
-        impl<'a> $t<&'a CellSet> for CellSet {
-            type Output = CellSet;
 
-            fn $f(self, rhs: &'a CellSet) -> CellSet {
+        impl<'a, T: GridSize> $t<&'a CellSet<T>> for CellSet<T> {
+
+            type Output = CellSet<T>;
+
+            fn $f(self, rhs: &'a CellSet<T>) -> CellSet<T> {
                 $t::$f(&self, rhs)
             }
         }
 
-        impl<'b> $t<CellSet> for &'b CellSet {
-            type Output = CellSet;
+        impl<'b, T: GridSize> $t<CellSet<T>> for &'b CellSet<T> {
 
-            fn $f(self, rhs: CellSet) -> CellSet {
+            type Output = CellSet<T>;
+
+            fn $f(self, rhs: CellSet<T>) -> CellSet<T> {
                 $t::$f(self, &rhs)
             }
         }
 
-        impl $t<CellSet> for CellSet {
-            type Output = CellSet;
+        impl<T: GridSize> $t<CellSet<T>> for CellSet<T> {
 
-            fn $f(self, rhs: CellSet) -> CellSet {
+            type Output = CellSet<T>;
+
+            fn $f(self, rhs: CellSet<T>) -> CellSet<T> {
                 $t::$f(&self, &rhs)
             }
         }
     }
 }
 
-// `BitAnd` implementation for `CellSet`.
-impl<'a, 'b> BitAnd<&'a CellSet> for &'b CellSet {
-    type Output = CellSet;
+// `BitAnd` implementation for `CellSet`
+impl<'a, 'b, T: GridSize> BitAnd<&'a CellSet<T>> for &'b CellSet<T> {
 
-    fn bitand(self, rhs: &'a CellSet) -> CellSet {
+    type Output = CellSet<T>;
+
+    fn bitand(self, rhs: &'a CellSet<T>) -> CellSet<T> {
+
+        let new_bits = self.bits.iter()
+            .zip(rhs.bits.iter())
+            .map(|(own_bits, other_bits)| own_bits & other_bits)
+            .collect();
+
         CellSet {
-            hi: self.hi & rhs.hi,
-            lo: self.lo & rhs.lo,
+            bits: new_bits,
+            size: PhantomData,
         }
     }
 }
 
-impl<'a> BitAndAssign<&'a CellSet> for CellSet {
-    fn bitand_assign(&mut self, other: &'a CellSet) {
-        self.hi &= other.hi;
-        self.lo &= other.lo;
+impl<'a, T: GridSize> BitAndAssign<&'a CellSet<T>> for CellSet<T> {
+    fn bitand_assign(&mut self, other: &'a CellSet<T>) {
+        for (idx, mask) in other.bits.iter().enumerate() {
+            self.bits[idx] &= mask;
+        }
     }
 }
 
-impl BitAndAssign<CellSet> for CellSet {
-    fn bitand_assign(&mut self, other: CellSet) {
-        self.hi &= other.hi;
-        self.lo &= other.lo;
+impl<T: GridSize> BitAndAssign<CellSet<T>> for CellSet<T> {
+    fn bitand_assign(&mut self, other: CellSet<T>) {
+        for (idx, mask) in other.bits.iter().enumerate() {
+            self.bits[idx] &= mask;
+        }
     }
 }
 
 binop_from_ref_ref!(BitAnd, bitand);
 
-// `BitOr` implementation for `CellSet`.
-impl<'a, 'b> BitOr<&'a CellSet> for &'b CellSet {
-    type Output = CellSet;
+// `BitOr` implementation for `CellSet`
+impl<'a, 'b, T: GridSize> BitOr<&'a CellSet<T>> for &'b CellSet<T> {
 
-    fn bitor(self, rhs: &'a CellSet) -> CellSet {
+    type Output = CellSet<T>;
+
+    fn bitor(self, rhs: &'a CellSet<T>) -> CellSet<T> {
+
+        let new_bits = self.bits.iter()
+            .zip(rhs.bits.iter())
+            .map(|(own_bits, other_bits)| own_bits | other_bits)
+            .collect();
+
         CellSet {
-            hi: self.hi | rhs.hi,
-            lo: self.lo | rhs.lo,
+            bits: new_bits,
+            size: PhantomData,
         }
     }
 }
 
-impl<'a> BitOrAssign<&'a CellSet> for CellSet {
-    fn bitor_assign(&mut self, other: &'a CellSet) {
-        self.hi |= other.hi;
-        self.lo |= other.lo;
+impl<'a, T: GridSize> BitOrAssign<&'a CellSet<T>> for CellSet<T> {
+    fn bitor_assign(&mut self, other: &'a CellSet<T>) {
+        for (idx, mask) in other.bits.iter().enumerate() {
+            self.bits[idx] |= mask;
+        }
     }
 }
 
-impl BitOrAssign<CellSet> for CellSet {
-    fn bitor_assign(&mut self, other: CellSet) {
-        self.hi |= other.hi;
-        self.lo |= other.lo;
+impl<T: GridSize> BitOrAssign<CellSet<T>> for CellSet<T> {
+    fn bitor_assign(&mut self, other: CellSet<T>) {
+        for (idx, mask) in other.bits.iter().enumerate() {
+            self.bits[idx] |= mask;
+        }
     }
 }
 
 binop_from_ref_ref!(BitOr, bitor);
 
-// `BitXor` implementation for `CellSet`.
-impl<'a, 'b> BitXor<&'a CellSet> for &'b CellSet {
-    type Output = CellSet;
+// `BitXor` implementation for `CellSet`
+impl<'a, 'b, T: GridSize> BitXor<&'a CellSet<T>> for &'b CellSet<T> {
 
-    fn bitxor(self, rhs: &'a CellSet) -> CellSet {
+    type Output = CellSet<T>;
+
+    fn bitxor(self, rhs: &'a CellSet<T>) -> CellSet<T> {
+
+        let new_bits = self.bits.iter()
+            .zip(rhs.bits.iter())
+            .map(|(own_bits, other_bits)| own_bits ^ other_bits)
+            .collect();
+
         CellSet {
-            hi: self.hi ^ rhs.hi,
-            lo: self.lo ^ rhs.lo,
+            bits: new_bits,
+            size: PhantomData,
         }
     }
 }
-impl<'a> BitXorAssign<&'a CellSet> for CellSet {
-    fn bitxor_assign(&mut self, other: &'a CellSet) {
-        self.hi ^= other.hi;
-        self.lo ^= other.lo;
+
+impl<'a, T: GridSize> BitXorAssign<&'a CellSet<T>> for CellSet<T> {
+    fn bitxor_assign(&mut self, other: &'a CellSet<T>) {
+        for (idx, mask) in other.bits.iter().enumerate() {
+            self.bits[idx] ^= mask;
+        }
     }
 }
 
-impl BitXorAssign<CellSet> for CellSet {
-    fn bitxor_assign(&mut self, other: CellSet) {
-        self.hi ^= other.hi;
-        self.lo ^= other.lo;
+impl<T: GridSize> BitXorAssign<CellSet<T>> for CellSet<T> {
+    fn bitxor_assign(&mut self, other: CellSet<T>) {
+        for (idx, mask) in other.bits.iter().enumerate() {
+            self.bits[idx] ^= mask;
+        }
     }
 }
 
 binop_from_ref_ref!(BitXor, bitxor);
 
-// `Not` implementation for `CellSet`.
-impl<'a> Not for &'a CellSet {
-    type Output = CellSet;
+// `Not` implementation for `CellSet`
+impl<'a, T: GridSize> Not for &'a CellSet<T> {
 
-    fn not(self) -> CellSet {
+    type Output = CellSet<T>;
+
+    fn not(self) -> CellSet<T> {
+
+        let mut negated_bits: Vec<_> = self.bits.iter().map(|mask| !mask).collect();
+        let number_of_cells = T::size() * T::size();
+        let high_order_mask = (1 << (number_of_cells % 64)) - 1;
+        negated_bits[number_of_cells / 64] &= high_order_mask;
+
         CellSet {
-            hi: !self.hi & 0x1FFFF,
-            lo: !self.lo,
+            bits: negated_bits,
+            size: PhantomData,
         }
     }
 }
 
-impl Not for CellSet {
-    type Output = CellSet;
+impl<'a, T: GridSize> Not for CellSet<T> {
 
-    fn not(self) -> CellSet {
+    type Output = CellSet<T>;
+
+    fn not(self) -> CellSet<T> {
+
+        let mut negated_bits: Vec<_> = self.bits.iter().map(|mask| !mask).collect();
+        let number_of_cells = T::size() * T::size();
+        let high_order_mask = (1 << (number_of_cells % 64)) - 1;
+        negated_bits[number_of_cells / 64] &= high_order_mask;
+
         CellSet {
-            hi: !self.hi & 0x1FFFF,
-            lo: !self.lo,
+            bits: negated_bits,
+            size: PhantomData,
         }
     }
 }

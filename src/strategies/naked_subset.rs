@@ -2,7 +2,7 @@
 
 use itertools::Itertools;
 
-use grid::Grid;
+use grid::{Grid, GridSize};
 use grid::candidateset::CandidateSet;
 use grid::cellset::CellSet;
 use strategies::{Deduction, Step};
@@ -12,11 +12,12 @@ use utils::GeneratorAdapter;
 ///
 /// A naked subset is when, in a particular region, n cells can only hold, between them, n
 /// different values. Then those values can be eliminated from elsewhere in the region.
-pub fn find_with_degree<'a>(grid: &'a Grid, degree: usize) -> impl Iterator<Item = Step> + 'a {
+pub fn find_with_degree<'a, T: GridSize>(grid: &'a Grid<T>, degree: usize) -> impl Iterator<Item = Step<T>> + 'a {
 
     GeneratorAdapter::of(move || {
+
         // Iterate over all tuples of empty cells from regions of the grid.
-        for region in Grid::regions() {
+        for region in grid.all_regions() {
             for cells in grid.empty_cells_in_region(region).iter().combinations(degree).map(CellSet::from_cells) {
 
                 // Take the union of the candidates found in these cells.
@@ -24,8 +25,8 @@ pub fn find_with_degree<'a>(grid: &'a Grid, degree: usize) -> impl Iterator<Item
 
                 // Check if the right number of candidates appear and if any eliminations will occur.
                 if candidates.len() == degree {
-                    if cells.common_neighbours().iter().any(|cell| !(grid.candidates(cell) & candidates).is_empty()) {
-                        yield Step::NakedSubset { region: *region, cells: cells, values: candidates };
+                    if grid.common_neighbours(&cells).iter().any(|cell| !(grid.candidates(cell) & candidates).is_empty()) {
+                        yield Step::NakedSubset { region: region.clone(), cells: cells.clone(), values: candidates };
                     }
                 }
             }
@@ -34,19 +35,19 @@ pub fn find_with_degree<'a>(grid: &'a Grid, degree: usize) -> impl Iterator<Item
 }
 
 /// Get the deductions arising from the hidden single on the given grid.
-pub fn get_deductions(grid: &Grid, naked_subset: &Step) -> Vec<Deduction> {
-    match *naked_subset {
-        Step::NakedSubset { cells, values, .. } => _get_deductions(grid, &cells, &values),
+pub fn get_deductions<T: GridSize>(grid: &Grid<T>, naked_subset: &Step<T>) -> Vec<Deduction> {
+    match naked_subset {
+        Step::NakedSubset { cells, values, .. } => _get_deductions(grid, cells, values),
         _ => unreachable!(),
     }
 }
 
 /// Get a concise description of this step, to be used in a description of a solution path.
-pub fn get_description(naked_subset: &Step) -> String {
-    match *naked_subset {
+pub fn get_description<T: GridSize>(grid: &Grid<T>, naked_subset: &Step<T>) -> String {
+    match naked_subset {
         Step::NakedSubset { region, cells, values } => format!(
-            "Naked {} - {} in {} ({})",
-            get_subset_name(cells.len()), values, Grid::region_name(&region), cells,
+            "Naked {} - {} in {} {}",
+            get_subset_name(cells.len()), values, grid.region_name(region), grid.region_name(cells),
         ),
         _ => unreachable!(),
     }
@@ -63,11 +64,11 @@ fn get_subset_name<'a>(size: usize) -> &'a str {
 
 
 /// Build up the deductions resulting from a naked subset.
-fn _get_deductions(grid: &Grid, cells: &CellSet, candidates: &CandidateSet) -> Vec<Deduction> {
+fn _get_deductions<T: GridSize>(grid: &Grid<T>, cells: &CellSet<T>, candidates: &CandidateSet<T>) -> Vec<Deduction> {
 
     let mut deductions = Vec::new();
 
-    for cell in cells.common_neighbours().iter() {
+    for cell in grid.common_neighbours(cells).iter() {
         for val in candidates.iter() {
             if grid.has_candidate(cell, val) {
                 deductions.push(Deduction::Elimination(cell, val));

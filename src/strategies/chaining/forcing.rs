@@ -8,38 +8,36 @@
 //! If there exists a common consequence of a chain from each of the starting premises, then that
 //! consequence must indeed be true, and can be added to the grid.
 
-use grid::Grid;
-use grid::cellset::CellSet;
+use grid::{Grid, GridSize};
 use strategies::Deduction;
 use strategies::chaining::nodes;
 use strategies::chaining::nodes::ChainNode;
 
 use std::collections::VecDeque;
-use std::fmt;
 
 #[derive(PartialEq, Eq)]
 /// A struct representing a single inference which is part of a forcing chain
-pub struct ForcingChainInference {
-    node: ChainNode,
+pub struct ForcingChainInference<T: GridSize> {
+    node: ChainNode<T>,
     negated: bool,
 }
 
 /// A convenience type to represent an entire forcing chain
-pub type ForcingChain = Vec<Vec<ForcingChainInference>>;
+pub type ForcingChain<T> = Vec<Vec<ForcingChainInference<T>>>;
 
-/// Implement a handy display trait for `ForcingChainInference`
-impl fmt::Display for ForcingChainInference {
+impl <T: GridSize> ForcingChainInference<T> {
 
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    /// Get a readable description of a `ForcingChainInference`
+    fn get_description(&self, grid: &Grid<T>) -> String {
         match self.negated {
-            true => write!(f, "-{}", self.node),
-            false => write!(f, "+{}", self.node),
+            true => format!("-{}", self.node.get_description(grid)),
+            false => format!("+{}", self.node.get_description(grid)),
         }
     }
 }
 
 /// Search for forcing chains in the given grid, using the given nodes as possible links in a chain.
-pub fn find_forcing_chains(grid: &Grid, nodes: Vec<ChainNode>) -> Vec<ForcingChain> {
+pub fn find_forcing_chains<T: GridSize>(grid: &Grid<T>, nodes: Vec<ChainNode<T>>) -> Vec<ForcingChain<T>> {
 
     let mut chains = Vec::new();
 
@@ -83,8 +81,8 @@ pub fn find_forcing_chains(grid: &Grid, nodes: Vec<ChainNode>) -> Vec<ForcingCha
 
     // For each region, and each candidate missing from the region, determine the common consequences
     // of chains from each placement of that candidate in the region.
-    for region in Grid::regions() {
-        for candidate in grid.missing_values_from_region(region).iter() {
+    for region in grid.all_regions() {
+        for candidate in grid.values_missing_from_region(region).iter() {
             let cells = grid.cells_with_candidate_in_region(candidate, region);
             if cells.len() >= 3 {
                 let premises = cells.map(|cell| nodes_by_cell_and_candidate[cell][candidate]);
@@ -98,7 +96,7 @@ pub fn find_forcing_chains(grid: &Grid, nodes: Vec<ChainNode>) -> Vec<ForcingCha
 }
 
 /// Get the deductions arising from the given Forcing chain.
-pub fn get_forcing_chain_deductions(grid: &Grid, forcing_chain: &ForcingChain) -> Vec<Deduction> {
+pub fn get_forcing_chain_deductions<T: GridSize>(grid: &Grid<T>, forcing_chain: &ForcingChain<T>) -> Vec<Deduction> {
     let consequence = forcing_chain[0].last().unwrap();
     match consequence {
         ForcingChainInference { node: ChainNode::Value { cell, value }, negated: true } => {
@@ -110,37 +108,35 @@ pub fn get_forcing_chain_deductions(grid: &Grid, forcing_chain: &ForcingChain) -
         ForcingChainInference { node: ChainNode::Group { cells, value, .. }, negated: true } => {
             cells.map(|cell| Deduction::Elimination(cell, *value))
         },
-        ForcingChainInference { node: ChainNode::Group { cells, line, block, value }, negated: false } => {
-            let elimination_region = (line | block) & !cells;
+        ForcingChainInference { node: ChainNode::Group { cells, value }, negated: false } => {
+            let elimination_region = grid.common_neighbours(cells);
             grid.cells_with_candidate_in_region(*value, &elimination_region).map(|cell| Deduction::Elimination(cell, *value))
         },
         ForcingChainInference { node: ChainNode::Als { cells_with_value, value, .. }, negated: true } => {
             cells_with_value.map(|cell| Deduction::Elimination(cell, *value))
         },
         ForcingChainInference { node: ChainNode::Als { cells_with_value, value, .. }, negated: false } => {
-            let elimination_region = CellSet::intersection(&cells_with_value.map(|ix| *Grid::neighbours(ix)));
-            grid.cells_with_candidate_in_region(*value, &elimination_region).map(|cell|
-                Deduction::Elimination(cell, *value)
-            )
+            let elimination_region = grid.common_neighbours(cells_with_value);
+            grid.cells_with_candidate_in_region(*value, &elimination_region).map(|cell| Deduction::Elimination(cell, *value))
         },
     }
 }
 
 /// Get a description of the given chain.
-pub fn get_forcing_chain_description(forcing_chain: &ForcingChain) -> String {
+pub fn get_forcing_chain_description<T: GridSize>(grid: &Grid<T>, forcing_chain: &ForcingChain<T>) -> String {
     let mut description = String::new();
     for chain in forcing_chain {
-        description.push_str(&format!("\n        {}", chain[0]));
+        description.push_str(&format!("\n        {}", chain[0].get_description(grid)));
         for inference in chain.iter().skip(1) {
             description.push_str(" --> ");
-            description.push_str(&format!("{}", inference));
+            description.push_str(&format!("{}", inference.get_description(grid)));
         }
     }
     description
 }
 
 /// Determine the common consequences, and chains proving them, for the given set of starting premises.
-fn find_chains(nodes: &[ChainNode], adjacencies: &[Vec<usize>], search_information: &[SearchResults], premises: &[usize]) -> Vec<ForcingChain> {
+fn find_chains<T: GridSize>(nodes: &[ChainNode<T>], adjacencies: &[Vec<usize>], search_information: &[SearchResults], premises: &[usize]) -> Vec<ForcingChain<T>> {
 
     // Find the common consequences of the starting premises
     let common_consequences: Vec<_> = (0..adjacencies.len()).filter(|&idx|
@@ -192,7 +188,7 @@ fn breadth_first_search(adjacencies: &[Vec<usize>], start_idx: usize) -> SearchR
 }
 
 /// Translate a path found via breadth-first search into an actual chain
-fn create_chain(nodes: &[ChainNode], parents: &[usize], start_idx: usize, end_idx: usize) -> Vec<ForcingChainInference> {
+fn create_chain<T: GridSize>(nodes: &[ChainNode<T>], parents: &[usize], start_idx: usize, end_idx: usize) -> Vec<ForcingChainInference<T>> {
     let mut chain = Vec::new();
     let (mut negated, mut current_idx) = (end_idx % 2 == 1, end_idx);
     while current_idx != start_idx {

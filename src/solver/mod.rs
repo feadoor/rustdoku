@@ -2,7 +2,7 @@
 
 mod solve_configuration;
 
-use grid::Grid;
+use grid::{Grid, GridSize};
 
 use strategies::{Step, Deduction};
 use strategies::Deduction::*;
@@ -18,15 +18,15 @@ pub enum SolveResult {
 }
 
 /// Stores details about the path taken during a solve.
-pub struct SolveDetails {
+pub struct SolveDetails<T: GridSize> {
     /// The result of the solve.
     pub result: SolveResult,
     /// The path taken through the solve.
-    pub steps: Vec<Step>,
+    pub steps: Vec<Step<T>>,
 }
 
 /// Solve, as far as possible, the grid, using the allowed strategies.
-pub fn solve(grid: &mut Grid, config: &SolveConfiguration) -> SolveDetails {
+pub fn solve<T: GridSize>(grid: &mut Grid<T>, config: &SolveConfiguration) -> SolveDetails<T> {
     let mut steps = Vec::new();
     while !grid.is_solved() {
         if let Some((step, deductions)) = find_step(grid, config) {
@@ -47,7 +47,7 @@ pub fn solve(grid: &mut Grid, config: &SolveConfiguration) -> SolveDetails {
 }
 
 /// Find the next step using the allowed set of strategies.
-fn find_step(grid: &Grid, config: &SolveConfiguration) -> Option<(Step, Vec<Deduction>)> {
+fn find_step<T: GridSize>(grid: &Grid<T>, config: &SolveConfiguration) -> Option<(Step<T>, Vec<Deduction>)> {
 
     for &strategy in config.strategies() {
         for step in strategy.find_steps(&grid) {
@@ -61,28 +61,56 @@ fn find_step(grid: &Grid, config: &SolveConfiguration) -> Option<(Step, Vec<Dedu
 
 #[cfg(test)]
 mod tests {
+
     use std::fs::File;
     use std::io::{BufRead, BufReader};
     use std::path::Path;
+
+    use crate::define_grid_size;
+    use grid::cellset::CellSet;
+
     use super::*;
 
-    fn check_grid(grid: &Grid) {
+    define_grid_size!(Grid9, 9);
+
+    fn parse_grid(string: &str) -> Grid<Grid9> {
+
+        let grid_regions: Vec<CellSet<Grid9>> = (0..9)
+            .map(|idx| 27 * (idx / 3) + 3 * (idx % 3))
+            .map(|idx| vec![idx, idx + 1, idx + 2, idx + 9, idx + 10, idx + 11, idx + 18, idx + 19, idx + 20])
+            .map(|cells| CellSet::from_cells(cells))
+            .collect();
+
+        let clues: Vec<usize> = string.bytes().map(|byte| match byte {
+            b'1'..=b'9' => (byte - b'0') as usize,
+            _ => 0,
+        }).collect();
+
+        let mut grid = Grid::empty(&grid_regions, &vec![CellSet::empty(); 81]);
+        for (idx, clue) in clues.iter().enumerate() {
+            if *clue > 0 { grid.place_value(idx, *clue); }
+        }
+
+        grid
+    }
+
+    fn check_grid<T: GridSize>(grid: &Grid<T>) {
         // Check that each value appears in every region in the grid.
-        for region in Grid::regions() {
-            for &value in Grid::values() {
+        for region in grid.all_regions() {
+            for value in grid.values() {
                 assert!(region.iter().any(|x| grid.value(x) == Some(value)));
             }
         }
     }
 
     #[test]
-    fn test_solves() {
-        let file = File::open(&Path::new("grids.txt")).unwrap();
+    fn test_classic_solves() {
+        let file = File::open(&Path::new("classic_grids.txt")).unwrap();
         let reader = BufReader::new(file);
         for line_it in reader.lines() {
             let line = line_it.unwrap();
-            if !line.is_empty() && !line.starts_with("//") {
-                let mut grid = Grid::from_str(&line).unwrap();
+            if !line.is_empty() && !line.starts_with("//") {                
+                let mut grid = parse_grid(&line);
                 assert_eq!(
                     solve(&mut grid, &SolveConfiguration::with_all_strategies()).result,
                     SolveResult::Solved

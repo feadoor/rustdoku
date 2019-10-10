@@ -1,6 +1,6 @@
 //! A definition of the XY-Chain strategy.
 
-use grid::{Candidate, CellIdx, Grid};
+use grid::{Candidate, CellIdx, Grid, GridSize};
 use grid::cellset::CellSet;
 use strategies::{Deduction, Step};
 use utils::GeneratorAdapter;
@@ -19,7 +19,7 @@ pub type XYChain = Vec<XYChainNode>;
 /// An XY-Chain is a chain of bivalue cells, connected by weak links on common candidates. One of
 /// the two candidates at the ends of the chain must be true, so any cells which can see both ends
 /// of the chain can have that candidate eliminated.
-pub fn find<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
+pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
     GeneratorAdapter::of(move || {
 
@@ -33,7 +33,7 @@ pub fn find<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
 
         for (start_idx, start_node) in nodes.iter().enumerate() {
             for (end_idx, end_node) in nodes.iter().enumerate() {
-                if start_idx != end_idx && is_connected(start_node, end_node) {
+                if start_idx != end_idx && is_connected(grid, start_node, end_node) {
                     distances[start_idx][end_idx] = 1;
                     paths[start_idx][end_idx] = end_idx;
                 }
@@ -59,7 +59,7 @@ pub fn find<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
             for end_idx in start_idx + 1..nodes.len() {
                 if distances[start_idx][end_idx] < usize::max_value() {
                     if !get_elimination_cells(grid, &nodes[start_idx], &nodes[end_idx]).is_empty() {
-                    
+
                         // Reconstruct the path that makes this XY-Chain
                         let (mut chain, mut current_idx) = (vec![], start_idx);
                         while current_idx != end_idx {
@@ -81,7 +81,7 @@ pub fn find<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
 }
 
 /// Get the deductions arising from the XY-Chain on the given grid.
-pub fn get_deductions(grid: &Grid, xy_chain: &Step) -> Vec<Deduction> {
+pub fn get_deductions<T: GridSize>(grid: &Grid<T>, xy_chain: &Step<T>) -> Vec<Deduction> {
     match xy_chain {
         Step::XYChain { chain } => {
             let (start_node, end_node) = (&chain[0], &chain[chain.len() - 1]);
@@ -93,12 +93,12 @@ pub fn get_deductions(grid: &Grid, xy_chain: &Step) -> Vec<Deduction> {
 }
 
 /// Get a concise description of this step, to be used in a description of a solution path.
-pub fn get_description(xy_chain: &Step) -> String {
+pub fn get_description<T: GridSize>(grid: &Grid<T>, xy_chain: &Step<T>) -> String {
     match xy_chain {
         Step::XYChain { chain } => {
             let mut description = format!("XY-Chain - ={}= ", chain[0].off_value);
             for node in chain.iter() {
-                description.push_str(&format!("{} ={}= ", Grid::cell_name(node.cell), node.on_value));
+                description.push_str(&format!("{} ={}= ", grid.cell_name(node.cell), node.on_value));
             }
             description
         },
@@ -107,23 +107,23 @@ pub fn get_description(xy_chain: &Step) -> String {
 }
 
 /// Check if there is a connection from one node to another in an XY-Chain
-fn is_connected(from_node: &XYChainNode, to_node: &XYChainNode) -> bool {
-    Grid::neighbours(from_node.cell).contains(to_node.cell) && from_node.on_value == to_node.off_value
+fn is_connected<T: GridSize>(grid: &Grid<T>, from_node: &XYChainNode, to_node: &XYChainNode) -> bool {
+    grid.neighbours(from_node.cell).contains(to_node.cell) && from_node.on_value == to_node.off_value
 }
 
 /// Get the elimination cells for the XY-Chain with the given endpoints.
-fn get_elimination_cells(grid: &Grid, start_node: &XYChainNode, end_node: &XYChainNode) -> CellSet {
-    if start_node.off_value != end_node.on_value { 
-        CellSet::empty() 
+fn get_elimination_cells<T: GridSize>(grid: &Grid<T>, start_node: &XYChainNode, end_node: &XYChainNode) -> CellSet<T> {
+    if start_node.off_value != end_node.on_value {
+        CellSet::empty()
     } else {
         let cells_with_candidate = grid.cells_with_candidate(end_node.on_value);
-        let possible_eliminations = Grid::neighbours(start_node.cell) & Grid::neighbours(end_node.cell);
+        let possible_eliminations = grid.neighbours(start_node.cell) & grid.neighbours(end_node.cell);
         cells_with_candidate & possible_eliminations
     }
 }
 
 /// Find all candidates in bivalue cells in the grid.
-fn find_xy_nodes(grid: &Grid) -> Vec<XYChainNode> {
+fn find_xy_nodes<T: GridSize>(grid: &Grid<T>) -> Vec<XYChainNode> {
     let mut nodes = Vec::new();
     for cell in grid.cells_with_n_candidates(2).iter() {
         let candidates = grid.candidates(cell).map(|x| x);

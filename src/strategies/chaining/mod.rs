@@ -4,19 +4,18 @@ mod aic;
 mod forcing;
 mod nodes;
 
-use grid::Grid;
-use grid::candidateset::CandidateSet;
+use grid::{Grid, GridSize};
 use strategies::Step;
 use utils::GeneratorAdapter;
 
 pub use self::aic::{Aic, get_aic_deductions, get_aic_description};
 pub use self::forcing::{ForcingChain, get_forcing_chain_deductions, get_forcing_chain_description};
 
-pub fn find_xchains<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
+pub fn find_xchains<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
     GeneratorAdapter::of(move || {
 
-        for candidate in CandidateSet::full().iter() {
+        for candidate in grid.values().into_iter() {
 
             // Create the possible chain nodes for this candidate
             let mut nodes = nodes::get_value_nodes_for_candidate(grid, candidate);
@@ -30,7 +29,7 @@ pub fn find_xchains<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
     })
 }
 
-pub fn find_aics<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
+pub fn find_aics<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
     GeneratorAdapter::of(move || {
 
@@ -45,7 +44,7 @@ pub fn find_aics<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
     })
 }
 
-pub fn find_als_aics<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
+pub fn find_als_aics<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
     GeneratorAdapter::of(move || {
 
@@ -61,7 +60,7 @@ pub fn find_als_aics<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
     })
 }
 
-pub fn find_forcing_chains<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
+pub fn find_forcing_chains<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
     GeneratorAdapter::of(move || {
 
@@ -76,7 +75,7 @@ pub fn find_forcing_chains<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + '
     })
 }
 
-pub fn find_als_forcing_chains<'a>(grid: &'a Grid) -> impl Iterator<Item = Step> + 'a {
+pub fn find_als_forcing_chains<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
     GeneratorAdapter::of(move || {
 

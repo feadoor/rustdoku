@@ -8,19 +8,18 @@
 //! two endpoints must be true. If those two endpoints have common peers, those peers can be
 //! eliminated from the grid.
 
-use grid::{Candidate, CellIdx, Grid};
+use grid::{Candidate, CellIdx, Grid, GridSize};
 use grid::cellset::CellSet;
 use strategies::Deduction;
 use strategies::chaining::nodes;
 use strategies::chaining::nodes::ChainNode;
 
 use std::collections::{HashSet, VecDeque};
-use std::fmt;
 
 #[derive(PartialEq, Eq)]
 /// A struct representing a single inference which is part of an AIC
-pub struct AicInference {
-    node: ChainNode,
+pub struct AicInference<T: GridSize> {
+    node: ChainNode<T>,
     negated: bool,
 }
 
@@ -28,21 +27,21 @@ pub struct AicInference {
 pub type AffectedCandidate = (CellIdx, Candidate);
 
 /// A convenience type to represent an entire AIC
-pub type Aic = Vec<AicInference>;
+pub type Aic<T> = Vec<AicInference<T>>;
 
-/// Implement a handy display trait for `AicInference`
-impl fmt::Display for AicInference {
+impl <T: GridSize> AicInference<T> {
 
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    /// Get a readable description of an `AicInference`
+    fn get_description(&self, grid: &Grid<T>) -> String {
         match self.negated {
-            true => write!(f, "-{}", self.node),
-            false => write!(f, "+{}", self.node),
+            true => format!("-{}", self.node.get_description(grid)),
+            false => format!("+{}", self.node.get_description(grid)),
         }
     }
 }
 
 /// Search for AICs in the given grid, constructed from the given possible nodes.
-pub fn find_aics(grid: &Grid, nodes: Vec<ChainNode>) -> Vec<Aic> {
+pub fn find_aics<T: GridSize>(grid: &Grid<T>, nodes: Vec<ChainNode<T>>) -> Vec<Aic<T>> {
 
     // Create the adjacency lists for the given nodes. Each node is treated as two different
     // vertices in the graph of linked inferences - one for the inference where the node is ON,
@@ -78,29 +77,29 @@ pub fn find_aics(grid: &Grid, nodes: Vec<ChainNode>) -> Vec<Aic> {
 }
 
 /// Get the deductions arising from the given AIC.
-pub fn get_aic_deductions(grid: &Grid, aic: &Aic) -> Vec<Deduction> {
+pub fn get_aic_deductions<T: GridSize>(grid: &Grid<T>, aic: &Aic<T>) -> Vec<Deduction> {
     let (on_node, off_node) = (&aic[0].node, &aic[aic.len() - 1].node);
     get_strong_link_deductions(grid, on_node, off_node)
 }
 
 /// Get a description of the given chain.
-pub fn get_aic_description(aic: &Aic) -> String {
-    let mut description = format!("{}", aic[0]);
+pub fn get_aic_description<T: GridSize>(grid: &Grid<T>, aic: &Aic<T>) -> String {
+    let mut description = format!("{}", aic[0].get_description(grid));
     for inference in aic.iter().skip(1) {
         description.push_str(" --> ");
-        description.push_str(&format!("{}", inference));
+        description.push_str(&format!("{}", inference.get_description(grid)));
     }
     description
 }
 
 /// Find candidates which would be eliminated as a result of the given node being ON
-fn find_affected_candidates(grid: &Grid, node: &ChainNode) -> HashSet<AffectedCandidate> {
+fn find_affected_candidates<T: GridSize>(grid: &Grid<T>, node: &ChainNode<T>) -> HashSet<AffectedCandidate> {
 
     let mut affected_candidates = HashSet::new();
 
-    // All cells which are in sight of every candidate that might be switched ON in this node is dead
+    // All cells which are in sight of every candidate that might be switched ON in this node are dead
     let (value, value_cells) = (get_value(node), get_value_cells(node));
-    let common_neighbours = CellSet::intersection(&value_cells.map(|ix| *Grid::neighbours(ix)));
+    let common_neighbours = CellSet::intersection(&value_cells.map(|ix| grid.neighbours(ix)));
     for cell in grid.cells_with_candidate_in_region(value, &common_neighbours).iter() {
         affected_candidates.insert((cell, value));
     }
@@ -119,7 +118,7 @@ fn find_affected_candidates(grid: &Grid, node: &ChainNode) -> HashSet<AffectedCa
 }
 
 /// Get the deductions that arise from a strong link between the two given nodes.
-fn get_strong_link_deductions(grid: &Grid, node1: &ChainNode, node2: &ChainNode) -> Vec<Deduction> {
+fn get_strong_link_deductions<T: GridSize>(grid: &Grid<T>, node1: &ChainNode<T>, node2: &ChainNode<T>) -> Vec<Deduction> {
     let first_affected_candidates = find_affected_candidates(grid, node1);
     let second_affected_candidates = find_affected_candidates(grid, node2);
     let common_affected_candidates = first_affected_candidates.intersection(&second_affected_candidates);
@@ -127,7 +126,7 @@ fn get_strong_link_deductions(grid: &Grid, node1: &ChainNode, node2: &ChainNode)
 }
 
 /// Extract the value from a `ChainNode`
-fn get_value(node: &ChainNode) -> Candidate {
+fn get_value<T: GridSize>(node: &ChainNode<T>) -> Candidate {
     match node {
         ChainNode::Value { value, .. } => *value,
         ChainNode::Group { value, .. } => *value,
@@ -136,17 +135,17 @@ fn get_value(node: &ChainNode) -> Candidate {
 }
 
 /// Extract the cells with the right value from a `ChainNode`
-fn get_value_cells(node: &ChainNode) -> CellSet {
+fn get_value_cells<T: GridSize>(node: &ChainNode<T>) -> CellSet<T> {
     match node {
         ChainNode::Value { cell, .. } => CellSet::from_cell(*cell),
-        ChainNode::Group { cells, .. } => *cells,
-        ChainNode::Als { cells_with_value, .. } => *cells_with_value,
+        ChainNode::Group { cells, .. } => cells.clone(),
+        ChainNode::Als { cells_with_value, .. } => cells_with_value.clone(),
     }
 }
 
 /// Perform a breadth-first search looking for chains starting from the OFF version of the given node
 /// and ending in the ON version of another node, in such a way that eliminations result.
-fn breadth_first_search(nodes: &[ChainNode], adjacencies: &[Vec<usize>], affected_candidates: &[HashSet<AffectedCandidate>], start_idx: usize) -> Vec<Aic> {
+fn breadth_first_search<T: GridSize>(nodes: &[ChainNode<T>], adjacencies: &[Vec<usize>], affected_candidates: &[HashSet<AffectedCandidate>], start_idx: usize) -> Vec<Aic<T>> {
 
     // The current state of the search, and a record of how each node was reached
     let (mut queue, mut visited, mut parents) = (VecDeque::new(), vec![false; adjacencies.len()], vec![0; adjacencies.len()]);
@@ -175,7 +174,7 @@ fn breadth_first_search(nodes: &[ChainNode], adjacencies: &[Vec<usize>], affecte
 }
 
 /// Translate a path found via breadth-first search into an actual chain
-fn create_chain(nodes: &[ChainNode], parents: &[usize], start_idx: usize, end_idx: usize) -> Aic {
+fn create_chain<T: GridSize>(nodes: &[ChainNode<T>], parents: &[usize], start_idx: usize, end_idx: usize) -> Aic<T> {
     let mut chain = Vec::new();
     let (mut negated, mut current_idx) = (end_idx % 2 == 1, end_idx);
     while current_idx != start_idx {

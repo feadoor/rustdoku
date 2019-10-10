@@ -1,46 +1,33 @@
 //! A definition of the nodes that can form part of a chain.
 
-use grid::{Candidate, CellIdx, Grid};
-use grid::candidateset::CandidateSet;
+use grid::{Candidate, CellIdx, Grid, GridSize};
 use grid::cellset::CellSet;
 
 use itertools::Itertools;
-use std::fmt;
+use std::collections::HashSet;
 
-#[derive(PartialEq, Eq, Clone)]
-pub enum ChainNode {
+#[derive(PartialEq, Eq, Clone, Hash)]
+pub enum ChainNode<T: GridSize> {
     Value { cell: CellIdx, value: Candidate },
-    Group { line: CellSet, block: CellSet, cells: CellSet, value: Candidate },
-    Als { cells: CellSet, cells_with_value: CellSet, value: Candidate },
+    Group { cells: CellSet<T>, value: Candidate },
+    Als { cells: CellSet<T>, cells_with_value: CellSet<T>, value: Candidate },
 }
 
-/// Implement a handy display trait for `ChainNode`
-impl fmt::Display for ChainNode {
+impl <T: GridSize> ChainNode<T> {
 
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            ChainNode::Value { cell, value } => write!(f, "{}{}", value, Grid::cell_name(cell)),
-            ChainNode::Group { cells, value, .. } => write!(f, "{}{}", value, Grid::region_name(&cells)),
-            ChainNode::Als { cells, value, .. } => write!(f, "{}{}", value, Grid::region_name(&cells)),
-        }
-    }
-}
-
-/// Implement a handy display trait for `ChainNode`
-impl fmt::Debug for ChainNode {
-
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            ChainNode::Value { cell, value } => write!(f, "{}{}", value, Grid::cell_name(cell)),
-            ChainNode::Group { cells, value, .. } => write!(f, "{}{}", value, Grid::region_name(&cells)),
-            ChainNode::Als { cells, value, .. } => write!(f, "{}{}", value, Grid::region_name(&cells)),
+    /// Get a readable description of a `ChainNode`
+    pub fn get_description(&self, grid: &Grid<T>) -> String {
+        match self {
+            ChainNode::Value { cell, value } => format!("{}{}", value, grid.cell_name(*cell)),
+            ChainNode::Group { cells, value, .. } => format!("{}{}", value, grid.region_name(cells)),
+            ChainNode::Als { cells, value, .. } => format!("{}{}", value, grid.region_name(cells)),
         }
     }
 }
 
 /// Determine if the two nodes are linked in such a way that the truth
 /// of the first implies the falsity of the second
-pub fn is_linked_on_to_off(grid: &Grid, start_node: &ChainNode, end_node: &ChainNode) -> bool {
+pub fn is_linked_on_to_off<T: GridSize>(grid: &Grid<T>, start_node: &ChainNode<T>, end_node: &ChainNode<T>) -> bool {
     match (start_node, end_node) {
         (ChainNode::Value { .. }, ChainNode::Value { .. }) => is_linked_value_on_value_off(grid, start_node, end_node),
         (ChainNode::Value { .. }, ChainNode::Group { .. }) => is_linked_value_on_group_off(grid, start_node, end_node),
@@ -56,7 +43,7 @@ pub fn is_linked_on_to_off(grid: &Grid, start_node: &ChainNode, end_node: &Chain
 
 /// Determine if the two nodes are linked in such a way that the falsity
 /// of the first implies the truth of the second
-pub fn is_linked_off_to_on(grid: &Grid, start_node: &ChainNode, end_node: &ChainNode) -> bool {
+pub fn is_linked_off_to_on<T: GridSize>(grid: &Grid<T>, start_node: &ChainNode<T>, end_node: &ChainNode<T>) -> bool {
     match (start_node, end_node) {
         (ChainNode::Value { .. }, ChainNode::Value { .. }) => is_linked_value_off_value_on(grid, start_node, end_node),
         (ChainNode::Value { .. }, ChainNode::Group { .. }) => is_linked_value_off_group_on(grid, start_node, end_node),
@@ -71,37 +58,27 @@ pub fn is_linked_off_to_on(grid: &Grid, start_node: &ChainNode, end_node: &Chain
 }
 
 /// Get all `Value` chain nodes for a given candidate from the given grid.
-pub fn get_value_nodes_for_candidate(grid: &Grid, candidate: Candidate) -> Vec<ChainNode> {
+pub fn get_value_nodes_for_candidate<T: GridSize>(grid: &Grid<T>, candidate: Candidate) -> Vec<ChainNode<T>> {
+
     let mut value_nodes = Vec::new();
+
     for cell in grid.cells_with_candidate(candidate).iter() {
         value_nodes.push(ChainNode::Value { cell, value: candidate });
     }
+
     value_nodes
 }
 
 /// Get all `Group` chain nodes for a given candidate from the given grid.
-pub fn get_group_nodes_for_candidate(grid: &Grid, candidate: Candidate) -> Vec<ChainNode> {
+pub fn get_group_nodes_for_candidate<T: GridSize>(grid: &Grid<T>, candidate: Candidate) -> Vec<ChainNode<T>> {
+
     let mut group_nodes = Vec::new();
 
-    // Intersections of rows and boxes
-    for row in Grid::rows() {
-        for block in Grid::blocks() {
-            let intersection = row & block;
-            let cells_with_candidate = grid.cells_with_candidate_in_region(candidate, &intersection);
-            if cells_with_candidate.len() > 1 {
-                group_nodes.push(ChainNode::Group { line: *row, block: *block, cells: cells_with_candidate, value: candidate });
-            }
-        }
-    }
-
-    // Intersections of columns and boxes
-    for column in Grid::columns() {
-        for block in Grid::blocks() {
-            let intersection = column & block;
-            let cells_with_candidate = grid.cells_with_candidate_in_region(candidate, &intersection);
-            if cells_with_candidate.len() > 1 {
-                group_nodes.push(ChainNode::Group { line: *column, block: *block, cells: cells_with_candidate, value: candidate });
-            }
+    for (region1, region2) in grid.all_regions().iter().tuple_combinations() {
+        let intersection = region1 & region2;
+        let cells_with_candidate = grid.cells_with_candidate_in_region(candidate, &intersection);
+        if cells_with_candidate.len() > 1 {
+            group_nodes.push(ChainNode::Group { cells: cells_with_candidate, value: candidate });
         }
     }
 
@@ -109,7 +86,7 @@ pub fn get_group_nodes_for_candidate(grid: &Grid, candidate: Candidate) -> Vec<C
 }
 
 /// Get all `Value` chain nodes from the given grid.
-pub fn get_value_nodes(grid: &Grid) -> Vec<ChainNode> {
+pub fn get_value_nodes<T: GridSize>(grid: &Grid<T>) -> Vec<ChainNode<T>> {
     let mut value_nodes = Vec::new();
     for cell in grid.empty_cells().iter() {
         for candidate in grid.candidates(cell).iter() {
@@ -120,30 +97,20 @@ pub fn get_value_nodes(grid: &Grid) -> Vec<ChainNode> {
 }
 
 /// Get all `Group` chain nodes from the given grid.
-pub fn get_group_nodes(grid: &Grid) -> Vec<ChainNode> {
+pub fn get_group_nodes<T: GridSize>(grid: &Grid<T>) -> Vec<ChainNode<T>> {
+
     let mut group_nodes = Vec::new();
+    let mut used_nodes = HashSet::new();
 
-    // Intersections of rows and boxes
-    for row in Grid::rows() {
-        for block in Grid::blocks() {
-            let intersection = row & block;
-            for candidate in CandidateSet::full().iter() {
-                let cells_with_candidate = grid.cells_with_candidate_in_region(candidate, &intersection);
-                if cells_with_candidate.len() > 1 {
-                    group_nodes.push(ChainNode::Group { line: *row, block: *block, cells: cells_with_candidate, value: candidate });
-                }
-            }
-        }
-    }
-
-    // Intersections of columns and boxes
-    for column in Grid::columns() {
-        for block in Grid::blocks() {
-            let intersection = column & block;
-            for candidate in CandidateSet::full().iter() {
-                let cells_with_candidate = grid.cells_with_candidate_in_region(candidate, &intersection);
-                if cells_with_candidate.len() > 1 {
-                    group_nodes.push(ChainNode::Group { line: *column, block: *block, cells: cells_with_candidate, value: candidate });
+    for (region1, region2) in grid.all_regions().iter().tuple_combinations() {
+        let intersection = region1 & region2;
+        for &candidate in grid.values().iter() {
+            let cells_with_candidate = grid.cells_with_candidate_in_region(candidate, &intersection);
+            if cells_with_candidate.len() > 1 {
+                let group_node = ChainNode::Group { cells: cells_with_candidate, value: candidate };
+                if !used_nodes.contains(&group_node) {
+                    used_nodes.insert(group_node.clone());
+                    group_nodes.push(group_node);
                 }
             }
         }
@@ -153,49 +120,23 @@ pub fn get_group_nodes(grid: &Grid) -> Vec<ChainNode> {
 }
 
 /// Get all `Als` chain nodes from the given grid.
-pub fn get_als_nodes(grid: &Grid) -> Vec<ChainNode> {
+pub fn get_als_nodes<T: GridSize>(grid: &Grid<T>) -> Vec<ChainNode<T>> {
 
     let mut als_nodes = Vec::new();
+    let mut used_nodes = HashSet::new();
 
-    // ALSs within rows
-    for row in Grid::rows() {
-        let empty_cells = grid.empty_cells_in_region(row);
+    for region in grid.all_regions() {
+        let empty_cells = grid.empty_cells_in_region(region);
         for degree in 2..empty_cells.len() {
             for cells in empty_cells.iter().combinations(degree).map(CellSet::from_cells) {
                 let candidates = grid.all_candidates_from_region(&cells);
                 if candidates.len() == degree + 1 {
                     for value in candidates.iter() {
-                        als_nodes.push(ChainNode::Als { cells, value, cells_with_value: grid.cells_with_candidate_in_region(value, &cells) });
-                    }
-                }
-            }
-        }
-    }
-
-    // ALSs within columns
-    for column in Grid::columns() {
-        let empty_cells = grid.empty_cells_in_region(column);
-        for degree in 2..empty_cells.len() {
-            for cells in empty_cells.iter().combinations(degree).map(CellSet::from_cells) {
-                let candidates = grid.all_candidates_from_region(&cells);
-                if candidates.len() == degree + 1 {
-                    for value in candidates.iter() {
-                        als_nodes.push(ChainNode::Als { cells, value, cells_with_value: grid.cells_with_candidate_in_region(value, &cells) });
-                    }
-                }
-            }
-        }
-    }
-
-    // ALSs within blocks, but not within a single row or column
-    for block in Grid::blocks() {
-        let empty_cells = grid.empty_cells_in_region(block);
-        for degree in 2..empty_cells.len() {
-            for cells in empty_cells.iter().combinations(degree).map(CellSet::from_cells) {
-                let candidates = grid.all_candidates_from_region(&cells);
-                if candidates.len() == degree + 1 && Grid::row_containing(&cells).is_none() && Grid::column_containing(&cells).is_none() {
-                    for value in candidates.iter() {
-                        als_nodes.push(ChainNode::Als { cells, value, cells_with_value: grid.cells_with_candidate_in_region(value, &cells) });
+                        let als_node = ChainNode::Als { cells: cells.clone(), value, cells_with_value: grid.cells_with_candidate_in_region(value, &cells) };
+                        if !used_nodes.contains(&als_node) {
+                            used_nodes.insert(als_node.clone());
+                            als_nodes.push(als_node);
+                        }
                     }
                 }
             }
@@ -205,11 +146,11 @@ pub fn get_als_nodes(grid: &Grid) -> Vec<ChainNode> {
     als_nodes
 }
 
-fn is_linked_value_on_value_off(_grid: &Grid, value_on_node: &ChainNode, value_off_node: &ChainNode) -> bool {
+fn is_linked_value_on_value_off<T: GridSize>(grid: &Grid<T>, value_on_node: &ChainNode<T>, value_off_node: &ChainNode<T>) -> bool {
     match (value_on_node, value_off_node) {
         (ChainNode::Value { cell: on_cell, value: on_value }, ChainNode::Value { cell: off_cell, value: off_value }) => {
             if *on_value == *off_value {
-                Grid::neighbours(*on_cell).contains(*off_cell)
+                grid.neighbours(*on_cell).contains(*off_cell)
             } else {
                 *on_cell == *off_cell
             }
@@ -218,11 +159,12 @@ fn is_linked_value_on_value_off(_grid: &Grid, value_on_node: &ChainNode, value_o
     }
 }
 
-fn is_linked_value_off_value_on(grid: &Grid, value_off_node: &ChainNode, value_on_node: &ChainNode) -> bool {
+fn is_linked_value_off_value_on<T: GridSize>(grid: &Grid<T>, value_off_node: &ChainNode<T>, value_on_node: &ChainNode<T>) -> bool {
     match (value_off_node, value_on_node) {
         (ChainNode::Value { cell: off_cell, value: off_value }, ChainNode::Value { cell: on_cell, value: on_value }) => {
             if *on_value == *off_value {
-                Grid::neighbours(*off_cell).contains(*on_cell) && !grid.candidate_in_region(*off_value, &(Grid::neighbours(*on_cell) & Grid::neighbours(*off_cell)))
+                let regions_to_consider = grid.all_regions_containing(&CellSet::from_cells(vec![*off_cell, *on_cell]));
+                regions_to_consider.iter().any(|region| grid.cells_with_candidate_in_region(*off_value, region).len() == 2)
             } else if *on_cell == *off_cell {
                 grid.num_candidates(*on_cell) == 2
             } else {
@@ -233,75 +175,73 @@ fn is_linked_value_off_value_on(grid: &Grid, value_off_node: &ChainNode, value_o
     }
 }
 
-fn is_linked_value_on_group_off(_grid: &Grid, value_on_node: &ChainNode, group_off_node: &ChainNode) -> bool {
+fn is_linked_value_on_group_off<T: GridSize>(grid: &Grid<T>, value_on_node: &ChainNode<T>, group_off_node: &ChainNode<T>) -> bool {
     match (value_on_node, group_off_node) {
         (ChainNode::Value { cell: on_cell, value: on_value }, ChainNode::Group { cells: off_cells, value: off_value, .. }) => {
-            *on_value == *off_value && Grid::neighbours(*on_cell).contains_all(*off_cells)
+            *on_value == *off_value && grid.neighbours(*on_cell).contains_all(off_cells)
         },
         _ => unreachable!(),
     }
 }
 
-fn is_linked_group_on_value_off(_grid: &Grid, group_on_node: &ChainNode, value_off_node: &ChainNode) -> bool {
+fn is_linked_group_on_value_off<T: GridSize>(grid: &Grid<T>, group_on_node: &ChainNode<T>, value_off_node: &ChainNode<T>) -> bool {
     match (group_on_node, value_off_node) {
         (ChainNode::Group { cells: on_cells, value: on_value, .. }, ChainNode::Value { cell: off_cell, value: off_value }) => {
-            *on_value == *off_value && Grid::neighbours(*off_cell).contains_all(*on_cells)
+            *on_value == *off_value && grid.neighbours(*off_cell).contains_all(on_cells)
         },
         _ => unreachable!(),
     }
 }
 
-fn is_linked_value_off_group_on(grid: &Grid, value_off_node: &ChainNode, group_on_node: &ChainNode) -> bool {
+fn is_linked_value_off_group_on<T: GridSize>(grid: &Grid<T>, value_off_node: &ChainNode<T>, group_on_node: &ChainNode<T>) -> bool {
     match (value_off_node, group_on_node) {
-        (ChainNode::Value { cell: off_cell, value: off_value }, ChainNode::Group { line: on_line, block: on_block, cells: on_cells, value: on_value }) => {
+        (ChainNode::Value { cell: off_cell, value: off_value }, ChainNode::Group { cells: on_cells, value: on_value }) => {
             if *on_value != *off_value { return false; }
             if on_cells.contains(*off_cell) { return false; }
-            let peers = grid.cells_with_candidate_in_region(*off_value, Grid::neighbours(*off_cell));
-            (on_line.contains(*off_cell) && on_cells.contains_all(peers & on_line)) ||
-            (on_block.contains(*off_cell) && on_cells.contains_all(peers & on_block))
+            let involved_cells = CellSet::from_cell(*off_cell) | on_cells;
+            grid.all_regions().iter().any(|region| region.contains(*off_cell) && involved_cells.contains_all(&grid.cells_with_candidate_in_region(*off_value, region)))
         },
         _ => unreachable!(),
     }
 }
 
-fn is_linked_group_off_value_on(grid: &Grid, group_off_node: &ChainNode, value_on_node: &ChainNode) -> bool {
+fn is_linked_group_off_value_on<T: GridSize>(grid: &Grid<T>, group_off_node: &ChainNode<T>, value_on_node: &ChainNode<T>) -> bool {
     match (group_off_node, value_on_node) {
-        (ChainNode::Group { line: off_line, block: off_block, cells: off_cells, value: off_value }, ChainNode::Value { cell: on_cell, value: on_value }) => {
+        (ChainNode::Group { cells: off_cells, value: off_value }, ChainNode::Value { cell: on_cell, value: on_value }) => {
             if *on_value != *off_value { return false; }
             if off_cells.contains(*on_cell) { return false; }
-            let peers = grid.cells_with_candidate_in_region(*on_value, Grid::neighbours(*on_cell));
-            (off_line.contains(*on_cell) && off_cells.contains_all(peers & off_line)) ||
-            (off_block.contains(*on_cell) && off_cells.contains_all(peers & off_block))
+            let involved_cells = CellSet::from_cell(*on_cell) | off_cells;
+            grid.all_regions().iter().any(|region| region.contains(*on_cell) && involved_cells.contains_all(&grid.cells_with_candidate_in_region(*off_value, region)))
         },
         _ => unreachable!(),
     }
 }
 
-fn is_linked_group_on_group_off(_grid: &Grid, group_on_node: &ChainNode, group_off_node: &ChainNode) -> bool {
+fn is_linked_group_on_group_off<T: GridSize>(grid: &Grid<T>, group_on_node: &ChainNode<T>, group_off_node: &ChainNode<T>) -> bool {
     match (group_on_node, group_off_node) {
-        (ChainNode::Group { line: on_line, block: on_block, cells: on_cells, value: on_value }, ChainNode::Group { cells: off_cells, value: off_value, .. }) => {
-            *on_value == *off_value && (on_cells & off_cells).is_empty() && (on_line | on_block).contains_all(*off_cells)
+        (ChainNode::Group { cells: on_cells, value: on_value }, ChainNode::Group { cells: off_cells, value: off_value, .. }) => {
+            *on_value == *off_value && grid.common_neighbours(on_cells).contains_all(off_cells)
         },
         _ => unreachable!(),
     }
 }
 
-fn is_linked_group_off_group_on(grid: &Grid, group_on_node: &ChainNode, group_off_node: &ChainNode) -> bool {
+fn is_linked_group_off_group_on<T: GridSize>(grid: &Grid<T>, group_on_node: &ChainNode<T>, group_off_node: &ChainNode<T>) -> bool {
     match (group_off_node, group_on_node) {
-        (ChainNode::Group { line: off_line, block: off_block, cells: off_cells, value: off_value, .. }, ChainNode::Group { cells: on_cells, value: on_value, .. }) => {
+        (ChainNode::Group { cells: off_cells, value: off_value, .. }, ChainNode::Group { cells: on_cells, value: on_value, .. }) => {
             if *on_value != *off_value { return false; }
-            (off_line.contains_all(*on_cells) && grid.cells_with_candidate_in_region(*off_value, off_line) == (off_cells | on_cells)) ||
-            (off_block.contains_all(*on_cells) && grid.cells_with_candidate_in_region(*off_value, off_block) == (off_cells | on_cells))
+            let involved_cells = on_cells | off_cells;
+            grid.all_regions().iter().any(|region| !(region & off_cells).is_empty() && involved_cells.contains_all(&grid.cells_with_candidate_in_region(*off_value, region)))
         },
         _ => unreachable!(),
     }
 }
 
-fn is_linked_value_on_als_off(_grid: &Grid, value_on_node: &ChainNode, als_off_node: &ChainNode) -> bool {
+fn is_linked_value_on_als_off<T: GridSize>(grid: &Grid<T>, value_on_node: &ChainNode<T>, als_off_node: &ChainNode<T>) -> bool {
     match (value_on_node, als_off_node) {
         (ChainNode::Value { cell: on_cell, value: on_value }, ChainNode::Als { cells_with_value: off_cells, value: off_value, .. }) => {
             if *on_value == *off_value {
-                Grid::neighbours(*on_cell).contains_all(*off_cells)
+                grid.neighbours(*on_cell).contains_all(off_cells)
             } else {
                 CellSet::from_cell(*on_cell) == *off_cells
             }
@@ -310,11 +250,11 @@ fn is_linked_value_on_als_off(_grid: &Grid, value_on_node: &ChainNode, als_off_n
     }
 }
 
-fn is_linked_als_on_value_off(_grid: &Grid, als_on_node: &ChainNode, value_off_node: &ChainNode) -> bool {
+fn is_linked_als_on_value_off<T: GridSize>(grid: &Grid<T>, als_on_node: &ChainNode<T>, value_off_node: &ChainNode<T>) -> bool {
     match (als_on_node, value_off_node) {
         (ChainNode::Als { cells_with_value: on_cells, value: on_value, .. }, ChainNode::Value { cell: off_cell, value: off_value }) => {
             if *on_value == *off_value {
-                Grid::neighbours(*off_cell).contains_all(*on_cells)
+                grid.neighbours(*off_cell).contains_all(on_cells)
             } else {
                 CellSet::from_cell(*off_cell) == *on_cells
             }
@@ -323,39 +263,38 @@ fn is_linked_als_on_value_off(_grid: &Grid, als_on_node: &ChainNode, value_off_n
     }
 }
 
-fn is_linked_group_on_als_off(_grid: &Grid, group_on_node: &ChainNode, als_off_node: &ChainNode) -> bool {
+fn is_linked_group_on_als_off<T: GridSize>(grid: &Grid<T>, group_on_node: &ChainNode<T>, als_off_node: &ChainNode<T>) -> bool {
     match (group_on_node, als_off_node) {
-        (ChainNode::Group { cells: on_cells, value: on_value, line: on_line, block: on_block }, ChainNode::Als { cells_with_value: off_cells, value: off_value, .. }) => {
-            *on_value == *off_value && (on_cells & off_cells).is_empty() && (on_line | on_block).contains_all(*off_cells)
+        (ChainNode::Group { cells: on_cells, value: on_value }, ChainNode::Als { cells_with_value: off_cells, value: off_value, .. }) => {
+            *on_value == *off_value && grid.common_neighbours(on_cells).contains_all(off_cells)
         },
         _ => unreachable!(),
     }
 }
 
-fn is_linked_als_on_group_off(_grid: &Grid, als_on_node: &ChainNode, group_off_node: &ChainNode) -> bool {
+fn is_linked_als_on_group_off<T: GridSize>(grid: &Grid<T>, als_on_node: &ChainNode<T>, group_off_node: &ChainNode<T>) -> bool {
     match (als_on_node, group_off_node) {
-        (ChainNode::Als { cells_with_value: on_cells, value: on_value, .. }, ChainNode::Group { cells: off_cells, value: off_value, line: off_line, block: off_block }) => {
-            *on_value == *off_value && (on_cells & off_cells).is_empty() && (off_line | off_block).contains_all(*on_cells)
+        (ChainNode::Als { cells_with_value: on_cells, value: on_value, .. }, ChainNode::Group { value: off_value, .. }) => {
+            *on_value == *off_value && grid.common_neighbours(on_cells).contains_all(on_cells)
         },
         _ => unreachable!(),
     }
 }
 
-fn is_linked_als_on_als_off(_grid: &Grid, als_on_node: &ChainNode, als_off_node: &ChainNode) -> bool {
+fn is_linked_als_on_als_off<T: GridSize>(grid: &Grid<T>, als_on_node: &ChainNode<T>, als_off_node: &ChainNode<T>) -> bool {
     match (als_on_node, als_off_node) {
         (ChainNode::Als { cells_with_value: on_cells, value: on_value, .. }, ChainNode::Als { cells_with_value: off_cells, value: off_value, .. }) => {
-            if *on_value != *off_value { 
+            if *on_value != *off_value {
                 on_cells.len() == 1 && *on_cells == *off_cells
             } else {
-                let common_neighbours = CellSet::intersection(&on_cells.map(|ix| *Grid::neighbours(ix)));
-                common_neighbours.contains_all(*off_cells)
+                grid.common_neighbours(on_cells).contains_all(off_cells)
             }
         },
         _ => unreachable!(),
     }
 }
 
-fn is_linked_als_off_als_on(_grid: &Grid, als_off_node: &ChainNode, als_on_node: &ChainNode) -> bool {
+fn is_linked_als_off_als_on<T: GridSize>(_grid: &Grid<T>, als_off_node: &ChainNode<T>, als_on_node: &ChainNode<T>) -> bool {
     match (als_off_node, als_on_node) {
         (ChainNode::Als { cells: off_cells, value: off_value, .. }, ChainNode::Als { cells: on_cells, value: on_value, .. }) => {
             *off_cells == *on_cells && *off_value != *on_value
