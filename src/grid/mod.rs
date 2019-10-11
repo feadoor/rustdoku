@@ -5,6 +5,7 @@ mod cell;
 pub mod cellset;
 mod fixed_size;
 mod regions;
+pub mod variants;
 
 use self::candidateset::CandidateSet;
 use self::cell::Cell;

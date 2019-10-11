@@ -3,6 +3,7 @@
 mod solve_configuration;
 
 use grid::{Grid, GridSize};
+use grid::variants::parse_classic;
 
 use strategies::{Step, Deduction};
 use strategies::Deduction::*;
@@ -65,34 +66,7 @@ mod tests {
     use std::fs::File;
     use std::io::{BufRead, BufReader};
     use std::path::Path;
-
-    use crate::define_grid_size;
-    use grid::cellset::CellSet;
-
     use super::*;
-
-    define_grid_size!(Grid9, 9);
-
-    fn parse_grid(string: &str) -> Grid<Grid9> {
-
-        let grid_regions: Vec<CellSet<Grid9>> = (0..9)
-            .map(|idx| 27 * (idx / 3) + 3 * (idx % 3))
-            .map(|idx| vec![idx, idx + 1, idx + 2, idx + 9, idx + 10, idx + 11, idx + 18, idx + 19, idx + 20])
-            .map(|cells| CellSet::from_cells(cells))
-            .collect();
-
-        let clues: Vec<usize> = string.bytes().map(|byte| match byte {
-            b'1'..=b'9' => (byte - b'0') as usize,
-            _ => 0,
-        }).collect();
-
-        let mut grid = Grid::empty(&grid_regions, &vec![CellSet::empty(); 81]);
-        for (idx, clue) in clues.iter().enumerate() {
-            if *clue > 0 { grid.place_value(idx, *clue); }
-        }
-
-        grid
-    }
 
     fn check_grid<T: GridSize>(grid: &Grid<T>) {
         // Check that each value appears in every region in the grid.
@@ -110,7 +84,7 @@ mod tests {
         for line_it in reader.lines() {
             let line = line_it.unwrap();
             if !line.is_empty() && !line.starts_with("//") {                
-                let mut grid = parse_grid(&line);
+                let mut grid = parse_classic(line).unwrap();
                 assert_eq!(
                     solve(&mut grid, &SolveConfiguration::with_all_strategies()).result,
                     SolveResult::Solved

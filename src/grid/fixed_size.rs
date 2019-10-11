@@ -14,7 +14,7 @@ macro_rules! define_grid_size {
     ($s:ident, $size:expr) => {
         
         #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-        struct $s;
+        pub struct $s;
 
         impl GridSize for $s {
             fn size() -> usize {

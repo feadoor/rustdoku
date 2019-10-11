@@ -21,6 +21,9 @@ pub struct CellSetIterator {
 
     /// A bitmask representing the cells yet to be iterated over
     bits: Vec<u64>,
+
+    /// The index of the currently-active bitmask
+    active_idx: usize,
 }
 
 impl Iterator for CellSetIterator {
@@ -28,15 +31,21 @@ impl Iterator for CellSetIterator {
     type Item = CellIdx;
 
     fn next(&mut self) -> Option<CellIdx> {
-        if let Some(highest_order_bits) = self.bits.last() {
-            if *highest_order_bits == 0 {
-                self.bits.pop();
-                self.next()
-            } else {
-                let next = highest_order_bits.trailing_zeros() as CellIdx;
-                *self.bits.last_mut().unwrap() = highest_order_bits & highest_order_bits - 1;
-                Some(next + 64 * (self.bits.len() - 1))
-            }
+
+        if self.active_idx >= self.bits.len() {
+            return None;
+        }
+
+        while self.bits[self.active_idx] == 0 && self.active_idx < self.bits.len() - 1 {
+            self.active_idx += 1;
+        }
+
+        let mask = self.bits[self.active_idx];
+
+        if mask != 0 {
+            let next = mask.trailing_zeros() as CellIdx;
+            self.bits[self.active_idx] = mask & (mask - 1);
+            Some(next + 64 * self.active_idx)
         } else {
             None
         }
@@ -88,6 +97,7 @@ impl<T: GridSize> CellSet<T> {
     pub fn iter(&self) -> CellSetIterator {
         CellSetIterator {
             bits: self.bits.clone(),
+            active_idx: 0,
         }
     }
 
