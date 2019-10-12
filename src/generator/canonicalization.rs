@@ -1,7 +1,6 @@
 //! Functions relating to canonicalizing generated puzzles.
 
-use generator::brute_force;
-use grid::{Grid, GridSize};
+use grid::GridSize;
 
 /// Find the minlex variant of the given puzzle - that is, the puzzle which is formed from the
 /// given puzzle by relabelling digits in such a way that the puzzle's clues are minimal in the
@@ -25,18 +24,4 @@ pub fn minlex<T: GridSize>(puzzle: &[usize]) -> Vec<usize> {
     }
 
     new_puzzle
-}
-
-/// Check if the given puzzle is minimal - that is, no clues can be removed without creating an
-/// invalid puzzle.
-pub fn is_minimal<T: GridSize>(empty_grid: &Grid<T>, clues: &[usize]) -> bool {
-    let mut modified_puzzle = clues.to_vec();
-    for (idx, &clue) in clues.iter().enumerate() {
-        if clue != 0 {
-            modified_puzzle[idx] = 0;
-            if brute_force::has_unique_solution(empty_grid, &modified_puzzle) { return false; }
-            modified_puzzle[idx] = clue;
-        }
-    }
-    true
 }

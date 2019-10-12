@@ -1,6 +1,6 @@
 //! Generate Sudoku puzzles which have a unique solution, using brute-force.
 
-mod brute_force;
+pub mod brute_force;
 mod canonicalization;
 mod patterns;
 

@@ -4,7 +4,7 @@ use itertools::Itertools;
 use std::collections::HashSet;
 use rand::prelude::*;
 
-use generator::brute_force;
+use generator::brute_force::BruteForceSolver;
 use generator::canonicalization::minlex;
 use grid::{Grid, GridSize};
 
@@ -19,6 +19,9 @@ pub struct PatternPuzzlesIterator<T: GridSize> {
 
     /// The empty grid for which puzzles are being generated.
     empty_grid: Grid<T>,
+
+    /// A brute-force solver configured to work with this grid
+    brute_force_solver: BruteForceSolver,
 
     /// The stack of seed puzzles still to be examined.
     seed_stack: Vec<Puzzle>,
@@ -39,8 +42,10 @@ impl <T: GridSize> PatternPuzzlesIterator<T> {
     pub fn for_empty_grid_and_pattern(empty_grid: Grid<T>, pattern: Pattern) -> PatternPuzzlesIterator<T> {
         loop {
             if let Some(puzzle) = PatternPuzzlesIterator::random_seed(&empty_grid, &pattern) {
+                let brute_force_solver = BruteForceSolver::for_empty_grid(&empty_grid);
                 return PatternPuzzlesIterator {
                     empty_grid: empty_grid,
+                    brute_force_solver: brute_force_solver,
                     seed_stack: vec![puzzle],
                     iteration_queue: vec![],
                     seen_puzzles: HashSet::new(),
@@ -119,7 +124,7 @@ impl <T: GridSize> Iterator for PatternPuzzlesIterator<T> {
 
                         // Check if the puzzle has a unique solution
                         let canonical_puzzle = minlex::<T>(&puzzle);
-                        if !self.seen_puzzles.contains(&canonical_puzzle) && brute_force::has_unique_solution(&self.empty_grid, &canonical_puzzle) {
+                        if !self.seen_puzzles.contains(&canonical_puzzle) && self.brute_force_solver.has_unique_solution(&canonical_puzzle) {
                             self.seen_puzzles.insert(canonical_puzzle.clone());
                             next_puzzles.push(canonical_puzzle);
                         }
