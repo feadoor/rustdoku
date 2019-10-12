@@ -49,8 +49,8 @@ fn find_finned_fish<'a, T: GridSize>(grid: &'a Grid<T>, degree: usize, value: us
 
             // Iterate over all possible choices of covers that leave fins and check for eliminations.
             let num_fins = cover_sets.len() - degree;
-            if num_fins == 1 || num_fins == 2 {
-                let full_cover = CellSet::union(&cover_sets) & &candidate_positions;
+            let full_cover = CellSet::union(&cover_sets) & &candidate_positions;
+            if num_fins > 0 {
                 for ex_covers in cover_sets.into_iter().combinations(num_fins) {
                     let uncovered = CellSet::union(&ex_covers);
                     let cover_union = &full_cover & !(&uncovered);

@@ -3,7 +3,6 @@
 mod solve_configuration;
 
 use grid::{Grid, GridSize};
-use grid::variants::parse_classic;
 
 use strategies::{Step, Deduction};
 use strategies::Deduction::*;
@@ -66,6 +65,7 @@ mod tests {
     use std::fs::File;
     use std::io::{BufRead, BufReader};
     use std::path::Path;
+    use grid::variants::classic_from_string;
     use super::*;
 
     fn check_grid<T: GridSize>(grid: &Grid<T>) {
@@ -83,8 +83,8 @@ mod tests {
         let reader = BufReader::new(file);
         for line_it in reader.lines() {
             let line = line_it.unwrap();
-            if !line.is_empty() && !line.starts_with("//") {                
-                let mut grid = parse_classic(line).unwrap();
+            if !line.is_empty() && !line.starts_with("//") {
+                let mut grid = classic_from_string(line).unwrap();
                 assert_eq!(
                     solve(&mut grid, &SolveConfiguration::with_all_strategies()).result,
                     SolveResult::Solved

@@ -5,7 +5,7 @@ extern crate rustdoku;
 use std::io;
 use std::io::BufRead;
 
-use rustdoku::grid::variants::parse_classic;
+use rustdoku::grid::variants::classic_from_string;
 use rustdoku::solver;
 use rustdoku::solver::{SolveConfiguration, SolveResult};
 use rustdoku::strategies::Strategy::*;
@@ -34,7 +34,7 @@ fn main() {
 
     for line in stdin.lock().lines() {
 
-        let grid_result = parse_classic(line.unwrap());
+        let grid_result = classic_from_string(line.unwrap());
         if grid_result.is_ok() {
             let mut grid = grid_result.unwrap();
             println!("\n\nInitial grid:\n\n{}\n\n", grid);

@@ -31,11 +31,9 @@ impl fmt::Debug for GridParseError {
     }
 }
 
-pub fn parse_classic(input: String) -> Result<Grid<Grid9>, GridParseError> {
+// Classic Sudoku
 
-    if input.len() != 81 {
-        return Err(GridParseError::BadLength);
-    }
+pub fn empty_classic() -> Grid<Grid9> {
 
     let grid_regions: Vec<CellSet<Grid9>> = (0..9)
             .map(|idx| 27 * (idx / 3) + 3 * (idx % 3))
@@ -43,30 +41,20 @@ pub fn parse_classic(input: String) -> Result<Grid<Grid9>, GridParseError> {
             .map(|cells| CellSet::from_cells(cells))
             .collect();
 
-    let clues: Vec<usize> = input.bytes().map(|byte| match byte {
-        b'1'..=b'9' => (byte - b'0') as usize,
-        _ => 0,
-    }).collect();
-
-    let mut grid = Grid::empty(&grid_regions, &vec![CellSet::empty(); 81]);
-    for (idx, clue) in clues.iter().enumerate() {
-        if *clue > 0 { 
-            if grid.has_candidate(idx, *clue) {
-                grid.place_value(idx, *clue);
-            } else {
-                return Err(GridParseError::Contradiction(idx));
-            }
-        }
-    }
-
-    Ok(grid)
+    Grid::empty(&grid_regions, &vec![CellSet::empty(); 81])
 }
 
-pub fn parse_six_by_six(input: String) -> Result<Grid<Grid6>, GridParseError> {
+pub fn classic_from_string(input: String) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_string(&empty_classic(), input)
+}
 
-    if input.len() != 36 {
-        return Err(GridParseError::BadLength);
-    }
+pub fn classic_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_clues(&empty_classic(), clues)
+}
+
+// 6x6 Sudoku
+
+pub fn empty_six_by_six() -> Grid<Grid6> {
 
     let grid_regions: Vec<CellSet<Grid6>> = (0..6)
             .map(|idx| 12 * (idx / 2) + 3 * (idx % 2))
@@ -74,30 +62,20 @@ pub fn parse_six_by_six(input: String) -> Result<Grid<Grid6>, GridParseError> {
             .map(|cells| CellSet::from_cells(cells))
             .collect();
 
-    let clues: Vec<usize> = input.bytes().map(|byte| match byte {
-        b'1'..=b'6' => (byte - b'0') as usize,
-        _ => 0,
-    }).collect();
-
-    let mut grid = Grid::empty(&grid_regions, &vec![CellSet::empty(); 36]);
-    for (idx, clue) in clues.iter().enumerate() {
-        if *clue > 0 { 
-            if grid.has_candidate(idx, *clue) {
-                grid.place_value(idx, *clue);
-            } else {
-                return Err(GridParseError::Contradiction(idx));
-            }
-        }
-    }
-
-    Ok(grid)
+    Grid::empty(&grid_regions, &vec![CellSet::empty(); 36])
 }
 
-pub fn parse_diagonal(input: String) -> Result<Grid<Grid9>, GridParseError> {
+pub fn six_by_six_from_string(input: String) -> Result<Grid<Grid6>, GridParseError> {
+    grid_from_empty_grid_and_string(&empty_six_by_six(), input)
+}
 
-    if input.len() != 81 {
-        return Err(GridParseError::BadLength);
-    }
+pub fn six_by_six_from_clues(clues: &[usize]) -> Result<Grid<Grid6>, GridParseError> {
+    grid_from_empty_grid_and_clues(&empty_six_by_six(), clues)
+}
+
+// Diagonal Sudoku
+
+pub fn empty_diagonal() -> Grid<Grid9> {
 
     let mut grid_regions: Vec<CellSet<Grid9>> = (0..9)
             .map(|idx| 27 * (idx / 3) + 3 * (idx % 3))
@@ -108,31 +86,20 @@ pub fn parse_diagonal(input: String) -> Result<Grid<Grid9>, GridParseError> {
     grid_regions.push(CellSet::from_cells(vec![0, 10, 20, 30, 40, 50, 60, 70, 80]));
     grid_regions.push(CellSet::from_cells(vec![8, 16, 24, 32, 40, 48, 56, 64, 72]));
 
-    let clues: Vec<usize> = input.bytes().map(|byte| match byte {
-        b'1'..=b'9' => (byte - b'0') as usize,
-        _ => 0,
-    }).collect();
-
-    let mut grid = Grid::empty(&grid_regions, &vec![CellSet::empty(); 81]);
-    for (idx, clue) in clues.iter().enumerate() {
-        if *clue > 0 { 
-            if grid.has_candidate(idx, *clue) {
-                grid.place_value(idx, *clue);
-            } else {
-                return Err(GridParseError::Contradiction(idx));
-            }
-        }
-    }
-
-    Ok(grid)
-
+    Grid::empty(&grid_regions, &vec![CellSet::empty(); 81])
 }
 
-pub fn parse_antiknight(input: String) -> Result<Grid<Grid9>, GridParseError> {
+pub fn diagonal_from_string(input: String) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_string(&empty_diagonal(), input)
+}
 
-    if input.len() != 81 {
-        return Err(GridParseError::BadLength);
-    }
+pub fn diagonal_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_clues(&empty_diagonal(), clues)
+}
+
+// Antiknight Sudoku
+
+pub fn empty_antiknight() -> Grid<Grid9> {
 
     let grid_regions: Vec<CellSet<Grid9>> = (0..9)
             .map(|idx| 27 * (idx / 3) + 3 * (idx % 3))
@@ -152,30 +119,20 @@ pub fn parse_antiknight(input: String) -> Result<Grid<Grid9>, GridParseError> {
         )
         .collect();
 
-    let clues: Vec<usize> = input.bytes().map(|byte| match byte {
-        b'1'..=b'9' => (byte - b'0') as usize,
-        _ => 0,
-    }).collect();
-
-    let mut grid = Grid::empty(&grid_regions, &additional_neighbours);
-    for (idx, clue) in clues.iter().enumerate() {
-        if *clue > 0 { 
-            if grid.has_candidate(idx, *clue) {
-                grid.place_value(idx, *clue);
-            } else {
-                return Err(GridParseError::Contradiction(idx));
-            }
-        }
-    }
-
-    Ok(grid)
+    Grid::empty(&grid_regions, &additional_neighbours)
 }
 
-pub fn parse_disjoint_groups(input: String) -> Result<Grid<Grid9>, GridParseError> {
+pub fn antiknight_from_string(input: String) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_string(&empty_antiknight(), input)
+}
 
-    if input.len() != 81 {
-        return Err(GridParseError::BadLength);
-    }
+pub fn antiknight_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_clues(&empty_antiknight(), clues)
+}
+
+// Disjoint Groups Sudoku
+
+pub fn empty_disjoint_groups() -> Grid<Grid9> {
 
     let mut grid_regions: Vec<CellSet<Grid9>> = (0..9)
             .map(|idx| 27 * (idx / 3) + 3 * (idx % 3))
@@ -188,14 +145,41 @@ pub fn parse_disjoint_groups(input: String) -> Result<Grid<Grid9>, GridParseErro
         .map(|cells| CellSet::from_cells(cells))
     );
 
-    let clues: Vec<usize> = input.bytes().map(|byte| match byte {
-        b'1'..=b'9' => (byte - b'0') as usize,
-        _ => 0,
-    }).collect();
+    Grid::empty(&grid_regions, &vec![CellSet::empty(); 81])
+}
 
-    let mut grid = Grid::empty(&grid_regions, &vec![CellSet::empty(); 81]);
+pub fn disjoint_groups_from_string(input: String) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_string(&empty_disjoint_groups(), input)
+}
+
+pub fn disjoint_groups_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_clues(&empty_disjoint_groups(), clues)
+}
+
+// Helpers
+
+fn grid_from_empty_grid_and_string<T: GridSize>(empty_grid: &Grid<T>, input: String) -> Result<Grid<T>, GridParseError> {
+    if T::size() <= 9 {
+        let clues: Vec<usize> = input.bytes().map(|byte| match byte {
+            b'1'..=b'9' => (byte - b'0') as usize,
+            _ => 0,
+        }).collect();
+        grid_from_empty_grid_and_clues(empty_grid, &clues)
+    } else {
+        unimplemented!();
+    }
+}
+
+fn grid_from_empty_grid_and_clues<T: GridSize>(grid: &Grid<T>, clues: &[usize]) -> Result<Grid<T>, GridParseError> {
+
+    let mut grid = grid.clone();
+
+    if clues.len() != T::size() * T::size() {
+        return Err(GridParseError::BadLength);
+    }
+
     for (idx, clue) in clues.iter().enumerate() {
-        if *clue > 0 { 
+        if *clue > 0 {
             if grid.has_candidate(idx, *clue) {
                 grid.place_value(idx, *clue);
             } else {
@@ -205,5 +189,4 @@ pub fn parse_disjoint_groups(input: String) -> Result<Grid<Grid9>, GridParseErro
     }
 
     Ok(grid)
-
 }

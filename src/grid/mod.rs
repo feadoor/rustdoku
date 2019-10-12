@@ -1,7 +1,7 @@
 //! A structure representing a Sudoku grid.
 
 pub mod candidateset;
-mod cell;
+pub mod cell;
 pub mod cellset;
 mod fixed_size;
 mod regions;
@@ -26,7 +26,7 @@ pub type Candidate = usize;
 // A simple enum for choosing between rows and columns
 #[derive(Copy, Clone)]
 pub enum RowOrColumn {
-    Row, 
+    Row,
     Column,
 }
 
