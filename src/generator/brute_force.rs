@@ -26,6 +26,7 @@ struct BoardState {
     cells: Vec<DigitMask>,
     cells_remaining: usize,
     solved_in_house: Vec<DigitMask>,
+    solution: Vec<usize>,
 }
 
 impl BoardState {
@@ -35,6 +36,7 @@ impl BoardState {
             cells: vec![(1 << num_digits) - 1; num_cells],
             cells_remaining: num_cells,
             solved_in_house: vec![0; grid.all_regions().len()],
+            solution: vec![0; num_cells],
         }
     }
 }
@@ -113,6 +115,7 @@ impl BruteForceSolver {
             cells: vec![self.constants.all_digits_mask; self.constants.num_cells],
             cells_remaining: self.constants.num_cells,
             solved_in_house: vec![0; self.constants.num_houses],
+            solution: vec![0; self.constants.num_cells],
         };
         self.board_stack.clear();
         self.solution_count = 0;
@@ -132,7 +135,7 @@ impl BruteForceSolver {
     fn run(&mut self, clues: &[usize], max_solutions: usize) {
         self.prepare_with_clues(clues);
         while !self.finished {
-            while ! self.placement_queue.is_empty() { self.process_queue(); }
+            while !self.placement_queue.is_empty() { self.process_queue(); }
             if self.board.cells_remaining > 0 && !self.invalid {
                 self.check_hidden_singles();
                 if self.placement_queue.is_empty() { self.guess(); }
@@ -259,7 +262,10 @@ impl BruteForceSolver {
             for &house in &self.constants.houses_for_cell[placement.cell] {
                 self.board.solved_in_house[house] |= mask;
             }
+            self.board.solution[placement.cell] = placement.mask;
             self.board.cells_remaining -= 1;
+        } else if self.board.solution[placement.cell] != placement.mask {
+            self.invalid = true;
         }
     }
 
