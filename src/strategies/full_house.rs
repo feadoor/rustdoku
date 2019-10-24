@@ -24,8 +24,10 @@ pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>>
                 }
 
                 // Return the deduction arising from the full house.
-                let val = grid.first_candidate(cell).unwrap();
-                yield Step::FullHouse{ region: region.clone(), cell: cell, value: val };
+                else {
+                    let val = grid.first_candidate(cell).unwrap();
+                    yield Step::FullHouse{ region: region.clone(), cell: cell, value: val };
+                }
             }
         }
     })

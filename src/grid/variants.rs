@@ -97,6 +97,140 @@ pub fn diagonal_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseErro
     grid_from_empty_grid_and_clues(&empty_diagonal(), clues)
 }
 
+// Antidiagonal Sudoku
+
+pub fn empty_antidiagonal() -> Grid<Grid9> {
+
+    let grid_regions: Vec<CellSet<Grid9>> = (0..9)
+            .map(|idx| 27 * (idx / 3) + 3 * (idx % 3))
+            .map(|idx| vec![idx, idx + 1, idx + 2, idx + 9, idx + 10, idx + 11, idx + 18, idx + 19, idx + 20])
+            .map(|cells| CellSet::from_cells(cells))
+            .collect();
+
+    let mut additional_neighbours = vec![CellSet::empty(); 81];
+
+    let on_diagonal_1 = vec![0, 10, 20, 30, 40, 50, 60, 70, 80];
+    let off_diagonal_1 = vec![1, 2, 9, 11, 18, 19, 31, 32, 39, 41, 48, 49, 61, 62, 69, 71, 78, 79];
+    let on_diagonal_2 = vec![8, 16, 24, 32, 40, 48, 56, 64, 72];
+    let off_diagonal_2 = vec![6, 7, 15, 17, 25, 26, 30, 31, 39, 41, 49, 50, 54, 55, 63, 65, 73, 74];
+
+    for &on1 in &on_diagonal_1 {
+        for &off1 in &off_diagonal_1 {
+            additional_neighbours[on1].add_cell(off1);
+            additional_neighbours[off1].add_cell(on1);
+        }
+    }
+
+    for &on2 in &on_diagonal_2 {
+        for &off2 in &off_diagonal_2 {
+            additional_neighbours[on2].add_cell(off2);
+            additional_neighbours[off2].add_cell(on2);
+        }
+    }
+
+    Grid::empty(&grid_regions, &additional_neighbours)
+}
+
+pub fn antidiagonal_from_string(input: String) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_string(&empty_antidiagonal(), input)
+}
+
+pub fn antidiagonal_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_clues(&empty_antidiagonal(), clues)
+}
+
+// Windoku
+
+pub fn empty_windoku() -> Grid<Grid9> {
+
+    let mut grid_regions: Vec<CellSet<Grid9>> = (0..9)
+            .map(|idx| 27 * (idx / 3) + 3 * (idx % 3))
+            .map(|idx| vec![idx, idx + 1, idx + 2, idx + 9, idx + 10, idx + 11, idx + 18, idx + 19, idx + 20])
+            .map(|cells| CellSet::from_cells(cells))
+            .collect();
+
+    grid_regions.push(CellSet::from_cells(vec![10, 11, 12, 19, 20, 21, 28, 29, 30]));
+    grid_regions.push(CellSet::from_cells(vec![14, 15, 16, 23, 24, 25, 32, 33, 34]));
+    grid_regions.push(CellSet::from_cells(vec![46, 47, 48, 55, 56, 57, 64, 65, 66]));
+    grid_regions.push(CellSet::from_cells(vec![50, 51, 52, 59, 60, 61, 68, 69, 70]));
+    grid_regions.push(CellSet::from_cells(vec![1, 2, 3, 37, 38, 39, 73, 74, 75]));
+    grid_regions.push(CellSet::from_cells(vec![5, 6, 7, 41, 42, 43, 77, 78, 79]));
+    grid_regions.push(CellSet::from_cells(vec![9, 18, 27, 13, 22, 31, 17, 26, 35]));
+    grid_regions.push(CellSet::from_cells(vec![45, 54, 63, 49, 58, 67, 53, 62, 71]));
+    grid_regions.push(CellSet::from_cells(vec![0, 4, 8, 36, 40, 44, 72, 76, 80]));
+
+    Grid::empty(&grid_regions, &vec![CellSet::empty(); 81])
+}
+
+pub fn windoku_from_string(input: String) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_string(&empty_windoku(), input)
+}
+
+pub fn windoku_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_clues(&empty_windoku(), clues)
+}
+
+// Antiwindoku
+
+pub fn empty_antiwindoku() -> Grid<Grid9> {
+
+    let grid_regions: Vec<CellSet<Grid9>> = (0..9)
+            .map(|idx| 27 * (idx / 3) + 3 * (idx % 3))
+            .map(|idx| vec![idx, idx + 1, idx + 2, idx + 9, idx + 10, idx + 11, idx + 18, idx + 19, idx + 20])
+            .map(|cells| CellSet::from_cells(cells))
+            .collect();
+
+    let mut additional_neighbours = vec![CellSet::empty(); 81];
+
+    let on_window_1 = vec![10, 11, 12, 19, 20, 21, 28, 29, 30];
+    let on_window_2 = vec![14, 15, 16, 23, 24, 25, 32, 33, 34];
+    let on_window_3 = vec![46, 47, 48, 55, 56, 57, 64, 65, 66];
+    let on_window_4 = vec![50, 51, 52, 59, 60, 61, 68, 69, 70];
+
+    let off_window_1 = vec![0, 1, 2, 9, 18];
+    let off_window_2 = vec![6, 7, 8, 17, 26];
+    let off_window_3 = vec![54, 63, 72, 73, 74];
+    let off_window_4 = vec![62, 71, 80, 79, 78];
+
+    for &on1 in &on_window_1 {
+        for &off1 in &off_window_1 {
+            additional_neighbours[on1].add_cell(off1);
+            additional_neighbours[off1].add_cell(on1);
+        }
+    }
+
+    for &on2 in &on_window_2 {
+        for &off2 in &off_window_2 {
+            additional_neighbours[on2].add_cell(off2);
+            additional_neighbours[off2].add_cell(on2);
+        }
+    }
+
+    for &on3 in &on_window_3 {
+        for &off3 in &off_window_3 {
+            additional_neighbours[on3].add_cell(off3);
+            additional_neighbours[off3].add_cell(on3);
+        }
+    }
+
+    for &on4 in &on_window_4 {
+        for &off4 in &off_window_4 {
+            additional_neighbours[on4].add_cell(off4);
+            additional_neighbours[off4].add_cell(on4);
+        }
+    }
+
+    Grid::empty(&grid_regions, &additional_neighbours)
+}
+
+pub fn antiwindoku_from_string(input: String) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_string(&empty_antiwindoku(), input)
+}
+
+pub fn antiwindoku_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_clues(&empty_antiwindoku(), clues)
+}
+
 // Antiknight Sudoku
 
 pub fn empty_antiknight() -> Grid<Grid9> {
