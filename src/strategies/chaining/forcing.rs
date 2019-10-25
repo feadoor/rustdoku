@@ -57,7 +57,7 @@ pub fn find_forcing_chains<T: GridSize>(grid: &Grid<T>, nodes: Vec<ChainNode<T>>
     }
 
     // Determine which nodes represent single candidates, and store the indices of these nodes.
-    let mut nodes_by_cell_and_candidate = vec![vec![0; 10]; 81];
+    let mut nodes_by_cell_and_candidate = vec![vec![0; T::size() + 1]; T::size() * T::size()];
     for (idx, node) in nodes.iter().enumerate() {
         if let ChainNode::Value { cell, value } = node {
             nodes_by_cell_and_candidate[*cell][*value] = idx;

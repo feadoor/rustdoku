@@ -58,7 +58,7 @@ impl <T: GridSize> PatternPuzzlesIterator<T> {
     /// Produce a random seed puzzle - possibly without a unique solution - that can be used as the
     /// starting point for a search.
     fn random_seed(empty_grid: &Grid<T>, pattern: &Pattern) -> Option<Puzzle> {
-        let mut puzzle = vec![0; 81];
+        let mut puzzle = vec![0; T::size() * T::size()];
         for &cell in pattern {
             let valid_clues = PatternPuzzlesIterator::valid_clues(empty_grid, &puzzle, cell);
             if valid_clues.is_empty() { return None; }
@@ -73,7 +73,7 @@ impl <T: GridSize> PatternPuzzlesIterator<T> {
         for neighbour in empty_grid.neighbours(cell).iter() {
             valid[puzzle[neighbour]] = false;
         }
-        (1..10).filter(|&c| valid[c]).collect()
+        (1..T::size() + 1).filter(|&c| valid[c]).collect()
     }
 }
 
