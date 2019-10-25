@@ -17,8 +17,8 @@ type Puzzle = Vec<usize>;
 /// A structure capable of producing and iterating over puzzles with a particular clue pattern.
 pub struct PatternPuzzlesIterator<T: GridSize> {
 
-    /// The empty grid for which puzzles are being generated.
-    empty_grid: Grid<T>,
+    /// The starting grid for which puzzles are being generated.
+    starting_grid: Grid<T>,
 
     /// A brute-force solver configured to work with this grid
     brute_force_solver: BruteForceSolver,
@@ -39,12 +39,12 @@ pub struct PatternPuzzlesIterator<T: GridSize> {
 impl <T: GridSize> PatternPuzzlesIterator<T> {
 
     /// An iterator over puzzles with the given clue pattern using a random seed.
-    pub fn for_empty_grid_and_pattern(empty_grid: Grid<T>, pattern: Pattern) -> PatternPuzzlesIterator<T> {
+    pub fn for_starting_grid_and_pattern(starting_grid: Grid<T>, pattern: Pattern) -> PatternPuzzlesIterator<T> {
         loop {
-            if let Some(puzzle) = PatternPuzzlesIterator::random_seed(&empty_grid, &pattern) {
-                let brute_force_solver = BruteForceSolver::for_empty_grid(&empty_grid);
+            if let Some(puzzle) = PatternPuzzlesIterator::random_seed(&starting_grid, &pattern) {
+                let brute_force_solver = BruteForceSolver::for_empty_grid(&starting_grid);
                 return PatternPuzzlesIterator {
-                    empty_grid: empty_grid,
+                    starting_grid: starting_grid,
                     brute_force_solver: brute_force_solver,
                     seed_stack: vec![puzzle],
                     iteration_queue: vec![],
@@ -57,10 +57,10 @@ impl <T: GridSize> PatternPuzzlesIterator<T> {
 
     /// Produce a random seed puzzle - possibly without a unique solution - that can be used as the
     /// starting point for a search.
-    fn random_seed(empty_grid: &Grid<T>, pattern: &Pattern) -> Option<Puzzle> {
-        let mut puzzle = vec![0; T::size() * T::size()];
+    fn random_seed(starting_grid: &Grid<T>, pattern: &Pattern) -> Option<Puzzle> {
+        let mut puzzle = starting_grid.cells().map(|c| starting_grid.value(c).unwrap_or(0));
         for &cell in pattern {
-            let valid_clues = PatternPuzzlesIterator::valid_clues(empty_grid, &puzzle, cell);
+            let valid_clues = PatternPuzzlesIterator::valid_clues(starting_grid, &puzzle, cell);
             if valid_clues.is_empty() { return None; }
             else { puzzle[cell] = *thread_rng().choose(&valid_clues).unwrap(); }
         }
@@ -68,9 +68,9 @@ impl <T: GridSize> PatternPuzzlesIterator<T> {
     }
 
     /// Find the clues are are valid in the given position, from the current puzzle state.
-    fn valid_clues(empty_grid: &Grid<T>, puzzle: &Puzzle, cell: usize) -> Vec<usize> {
+    fn valid_clues(starting_grid: &Grid<T>, puzzle: &Puzzle, cell: usize) -> Vec<usize> {
         let mut valid = vec![true; 10]; valid[0] = false;
-        for neighbour in empty_grid.neighbours(cell).iter() {
+        for neighbour in starting_grid.neighbours(cell).iter() {
             valid[puzzle[neighbour]] = false;
         }
         (1..T::size() + 1).filter(|&c| valid[c]).collect()
@@ -95,7 +95,7 @@ impl <T: GridSize> Iterator for PatternPuzzlesIterator<T> {
             // If the stack has been exhausted, then we are finished.
             if self.seed_stack.is_empty() {
                 loop {
-                    if let Some(seed) = Self::random_seed(&self.empty_grid, &self.pattern) {
+                    if let Some(seed) = Self::random_seed(&self.starting_grid, &self.pattern) {
                         self.seed_stack.push(seed);
                         break;
                     }
@@ -105,7 +105,7 @@ impl <T: GridSize> Iterator for PatternPuzzlesIterator<T> {
             // Find the puzzle at the top of the stack.
             let current_puzzle = self.seed_stack.pop().unwrap();
 
-            // Perform a +3/-3 vicinity search on this puzzle.
+            // Perform a +2/-2 vicinity search on this puzzle.
             let mut next_puzzles = Vec::new();
             for (&clue1, &clue2) in self.pattern.iter().tuple_combinations() {
 
@@ -114,7 +114,7 @@ impl <T: GridSize> Iterator for PatternPuzzlesIterator<T> {
                 puzzle[clue1] = 0; puzzle[clue2] = 0;
 
                 // Find the possibilities for each of the 3 modified clues.
-                let (poss1, poss2) = (Self::valid_clues(&self.empty_grid, &puzzle, clue1), Self::valid_clues(&self.empty_grid, &puzzle, clue2));
+                let (poss1, poss2) = (Self::valid_clues(&self.starting_grid, &puzzle, clue1), Self::valid_clues(&self.starting_grid, &puzzle, clue2));
 
                 // Find all of the puzzles that are within the vicinity of the original puzzle.
                 for &c1 in &poss1 {
