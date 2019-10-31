@@ -264,6 +264,39 @@ pub fn antiknight_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseEr
     grid_from_empty_grid_and_clues(&empty_antiknight(), clues)
 }
 
+// Untouch Sudoku
+
+pub fn empty_untouch() -> Grid<Grid9> {
+
+    let grid_regions: Vec<CellSet<Grid9>> = (0..9)
+            .map(|idx| 27 * (idx / 3) + 3 * (idx % 3))
+            .map(|idx| vec![idx, idx + 1, idx + 2, idx + 9, idx + 10, idx + 11, idx + 18, idx + 19, idx + 20])
+            .map(|cells| CellSet::from_cells(cells))
+            .collect();
+
+    let untouch_steps = vec![(-1, -1), (-1, 1), (1, -1), (1, 1)];
+    let additional_neighbours: Vec<CellSet<Grid9>> = (0..81)
+        .map(|cell| (cell / 9, cell % 9))
+        .map(|(row, col)| CellSet::from_cells(
+            untouch_steps.iter()
+                .map(|step| (row as i32 + step.0, col as i32 + step.1))
+                .filter(|&(r, c)| 0 <= r && r < 9 && 0 <= c && c < 9)
+                .map(|(r, c)| (9 * r + c) as usize)
+            )
+        )
+        .collect();
+
+    Grid::empty(&grid_regions, &additional_neighbours)
+}
+
+pub fn untouch_from_string(input: String) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_string(&empty_untouch(), input)
+}
+
+pub fn untouch_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_clues(&empty_untouch(), clues)
+}
+
 // Disjoint Groups Sudoku
 
 pub fn empty_disjoint_groups() -> Grid<Grid9> {
@@ -326,6 +359,35 @@ pub fn disjoint_groups_antiknight_from_string(input: String) -> Result<Grid<Grid
 
 pub fn disjoint_groups_antiknight_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
     grid_from_empty_grid_and_clues(&empty_disjoint_groups_antiknight(), clues)
+}
+
+// Odd/Even Sudoku
+
+pub fn empty_odd_even(odds: &[usize], evens: &[usize]) -> Grid<Grid9> {
+
+    let mut grid = empty_classic();
+
+    for &odd_cell in odds {
+        for &even_candidate in &[2, 4, 6, 8] {
+            grid.eliminate_value(odd_cell, even_candidate);
+        }
+    }
+
+    for &even_cell in evens {
+        for &odd_candidate in &[1, 3, 5, 7, 9] {
+            grid.eliminate_value(even_cell, odd_candidate);
+        }
+    }
+
+    grid
+}
+
+pub fn odd_even_from_string(input: String, odds: &[usize], evens: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_string(&empty_odd_even(odds, evens), input)
+}
+
+pub fn odd_even_from_clues(clues: &[usize], odds: &[usize], evens: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_clues(&empty_odd_even(odds, evens), clues)
 }
 
 // Helpers

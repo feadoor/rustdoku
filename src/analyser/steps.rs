@@ -19,7 +19,11 @@ pub fn steps_to_solve<T: GridSize>(grid: &Grid<T>, strategies: &[Vec<Strategy>])
             let deductions: Vec<Deduction> = moves.iter().flat_map(|mov| mov.get_deductions(&working_grid)).collect();
             if !deductions.is_empty() {
                 for deduction in deductions {
-                    working_grid.apply_deduction(deduction);
+                    if let Deduction::Contradiction = deduction {
+                        return None;
+                    } else {
+                        working_grid.apply_deduction(deduction);
+                    }
                 }
                 steps_taken[idx] += 1; continue 'outer;
             }

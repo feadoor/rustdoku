@@ -103,6 +103,11 @@ impl BruteForceSolver {
         self.solution_count == 1
     }
 
+    pub fn has_any_solution(&mut self, clues: &[usize]) -> bool {
+        self.run(clues, 1);
+        self.solution_count > 0
+    }
+
     pub fn count_solutions(&mut self, clues: &[usize]) -> usize {
         self.run(clues, usize::max_value());
         self.solution_count

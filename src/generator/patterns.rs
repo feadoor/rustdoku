@@ -109,11 +109,11 @@ impl <T: GridSize> Iterator for PatternPuzzlesIterator<T> {
             let mut next_puzzles = Vec::new();
             for (&clue1, &clue2) in self.pattern.iter().tuple_combinations() {
 
-                // Set the three clues that will be modified to 0
+                // Set the two clues that will be modified to 0
                 let mut puzzle = current_puzzle.clone();
                 puzzle[clue1] = 0; puzzle[clue2] = 0;
 
-                // Find the possibilities for each of the 3 modified clues.
+                // Find the possibilities for each of the 2 modified clues.
                 let (poss1, poss2) = (Self::valid_clues(&self.starting_grid, &puzzle, clue1), Self::valid_clues(&self.starting_grid, &puzzle, clue2));
 
                 // Find all of the puzzles that are within the vicinity of the original puzzle.
@@ -121,14 +121,13 @@ impl <T: GridSize> Iterator for PatternPuzzlesIterator<T> {
                     puzzle[clue1] = c1;
                     for &c2 in &poss2 {
                         puzzle[clue2] = c2;
+                        
 
                         // Check if the puzzle has a unique solution
                         let canonical_puzzle = minlex::<T>(&puzzle);
                         if !self.seen_puzzles.contains(&canonical_puzzle) && self.brute_force_solver.has_unique_solution(&canonical_puzzle) {
-                            self.seen_puzzles.insert(canonical_puzzle.clone());
                             next_puzzles.push(canonical_puzzle);
                         }
-
                     }
                 }
             }
