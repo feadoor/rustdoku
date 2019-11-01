@@ -323,44 +323,6 @@ pub fn disjoint_groups_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridPa
     grid_from_empty_grid_and_clues(&empty_disjoint_groups(), clues)
 }
 
-// Disjoint Groups and Antiknight Sudoku
-
-pub fn empty_disjoint_groups_antiknight() -> Grid<Grid9> {
-
-    let mut grid_regions: Vec<CellSet<Grid9>> = (0..9)
-            .map(|idx| 27 * (idx / 3) + 3 * (idx % 3))
-            .map(|idx| vec![idx, idx + 1, idx + 2, idx + 9, idx + 10, idx + 11, idx + 18, idx + 19, idx + 20])
-            .map(|cells| CellSet::from_cells(cells))
-            .collect();
-
-    grid_regions.extend(vec![0, 1, 2, 9, 10, 11, 18, 19, 20].into_iter()
-        .map(|idx| vec![idx, idx + 3, idx + 6, idx + 27, idx + 30, idx + 33, idx + 54, idx + 57, idx + 60])
-        .map(|cells| CellSet::from_cells(cells))
-    );
-
-    let knight_steps = vec![(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)];
-    let additional_neighbours: Vec<CellSet<Grid9>> = (0..81)
-        .map(|cell| (cell / 9, cell % 9))
-        .map(|(row, col)| CellSet::from_cells(
-            knight_steps.iter()
-                .map(|step| (row as i32 + step.0, col as i32 + step.1))
-                .filter(|&(r, c)| 0 <= r && r < 9 && 0 <= c && c < 9)
-                .map(|(r, c)| (9 * r + c) as usize)
-            )
-        )
-        .collect();
-
-    Grid::empty(&grid_regions, &additional_neighbours)
-}
-
-pub fn disjoint_groups_antiknight_from_string(input: String) -> Result<Grid<Grid9>, GridParseError> {
-    grid_from_empty_grid_and_string(&empty_disjoint_groups_antiknight(), input)
-}
-
-pub fn disjoint_groups_antiknight_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
-    grid_from_empty_grid_and_clues(&empty_disjoint_groups_antiknight(), clues)
-}
-
 // Odd/Even Sudoku
 
 pub fn empty_odd_even(odds: &[usize], evens: &[usize]) -> Grid<Grid9> {

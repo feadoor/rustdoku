@@ -122,10 +122,10 @@ impl <T: GridSize> Iterator for PatternPuzzlesIterator<T> {
                     for &c2 in &poss2 {
                         puzzle[clue2] = c2;
                         
-
                         // Check if the puzzle has a unique solution
                         let canonical_puzzle = minlex::<T>(&puzzle);
                         if !self.seen_puzzles.contains(&canonical_puzzle) && self.brute_force_solver.has_unique_solution(&canonical_puzzle) {
+                            self.seen_puzzles.insert(canonical_puzzle.clone());
                             next_puzzles.push(canonical_puzzle);
                         }
                     }
