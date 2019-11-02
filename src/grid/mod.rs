@@ -255,6 +255,9 @@ impl<T: GridSize> Grid<T> {
 
         for cell in 0..T::size() * T::size() {
             for value in 0..T::size() {
+                for other in 0..T::size() {
+                    neighbours[cell][value].add_placement(placementset::Placement { cell: cell, candidate: other + 1 });
+                }
                 neighbours[cell][value].remove_placement(placementset::Placement { cell: cell, candidate: value + 1 });
             }
         }
