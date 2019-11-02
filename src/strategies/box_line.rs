@@ -1,6 +1,7 @@
 //! A definition of the box-line interactions strategy.
 
 use grid::{Grid, GridSize};
+use grid::placementset::PlacementSet;
 use strategies::{Deduction, Step};
 use utils::GeneratorAdapter;
 
@@ -19,10 +20,11 @@ pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>>
                 let cells = grid.cells_with_candidate_in_region(val, region);
 
                 // Grab the common neighbours and look for instances of the target candidate
-                let common_neighbours = grid.common_neighbours(&cells);
-                let elimination_cells = grid.cells_with_candidate_in_region(val, &common_neighbours);
-                if !elimination_cells.is_empty() {
-                    yield Step::BoxLine { region: region.clone(), neighbours: elimination_cells.clone(), value: val };
+                let neighbours = cells.map(|c| grid.neighbours(c, val));
+                let common_neighbours = PlacementSet::intersection(&neighbours);
+                let eliminations = common_neighbours.filter(|p| grid.has_candidate(p.cell, p.candidate));
+                if !eliminations.is_empty() {
+                    yield Step::BoxLine { region: region.clone(), eliminations: eliminations, value: val };
                 }
             }
         }
@@ -32,8 +34,8 @@ pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>>
 /// Get the deductions arising from the box-line interactions on the given grid.
 pub fn get_deductions<T: GridSize>(_grid: &Grid<T>, box_line: &Step<T>) -> Vec<Deduction> {
     match box_line {
-        Step::BoxLine { neighbours, value, .. } =>
-            neighbours.map(|cell| Deduction::Elimination(cell, *value)),
+        Step::BoxLine { eliminations, .. } =>
+            eliminations.map(|p| Deduction::Elimination(p.cell, p.candidate)),
         _ => unreachable!(),
     }
 }

@@ -1,4 +1,4 @@
-// ! A structure which stores sets of cells within the grid as bitmasks.
+//! A structure which stores sets of cells within the grid as bitmasks.
 
 use grid::CellIdx;
 use grid::fixed_size::GridSize;
@@ -143,7 +143,7 @@ impl<T: GridSize> CellSet<T> {
         CellSet::from_cells(self.iter().filter(predicate))
     }
 
-    /// Map the indicates held in this `CellSet`
+    /// Map the indices held in this `CellSet`
     pub fn map<B, F: FnMut(CellIdx) -> B>(&self, f: F) -> Vec<B> {
         self.iter().map(f).collect()
     }

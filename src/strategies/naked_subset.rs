@@ -25,7 +25,7 @@ pub fn find_with_degree<'a, T: GridSize>(grid: &'a Grid<T>, degree: usize) -> im
 
                 // Check if the right number of candidates appear and if any eliminations will occur.
                 if candidates.len() == degree {
-                    if grid.common_neighbours(&cells).iter().any(|cell| !(grid.candidates(cell) & candidates).is_empty()) {
+                    if (region & !(&cells)).iter().any(|cell| !(grid.candidates(cell) & candidates).is_empty()) {
                         yield Step::NakedSubset { region: region.clone(), cells: cells.clone(), values: candidates };
                     }
                 }
@@ -37,7 +37,7 @@ pub fn find_with_degree<'a, T: GridSize>(grid: &'a Grid<T>, degree: usize) -> im
 /// Get the deductions arising from the hidden single on the given grid.
 pub fn get_deductions<T: GridSize>(grid: &Grid<T>, naked_subset: &Step<T>) -> Vec<Deduction> {
     match naked_subset {
-        Step::NakedSubset { cells, values, .. } => _get_deductions(grid, cells, values),
+        Step::NakedSubset { region, cells, values, .. } => _get_deductions(grid, region, cells, values),
         _ => unreachable!(),
     }
 }
@@ -64,11 +64,11 @@ fn get_subset_name<'a>(size: usize) -> &'a str {
 
 
 /// Build up the deductions resulting from a naked subset.
-fn _get_deductions<T: GridSize>(grid: &Grid<T>, cells: &CellSet<T>, candidates: &CandidateSet<T>) -> Vec<Deduction> {
+fn _get_deductions<T: GridSize>(grid: &Grid<T>, region: &CellSet<T>, cells: &CellSet<T>, candidates: &CandidateSet<T>) -> Vec<Deduction> {
 
     let mut deductions = Vec::new();
 
-    for cell in grid.common_neighbours(cells).iter() {
+    for cell in (region & !cells).iter() {
         for val in candidates.iter() {
             if grid.has_candidate(cell, val) {
                 deductions.push(Deduction::Elimination(cell, val));

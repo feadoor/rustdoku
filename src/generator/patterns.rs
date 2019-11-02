@@ -5,7 +5,6 @@ use std::collections::HashSet;
 use rand::prelude::*;
 
 use generator::brute_force::BruteForceSolver;
-use generator::canonicalization::minlex;
 use grid::{Grid, GridSize};
 
 /// A convenience type to represent a pattern of clues within a grid.
@@ -69,11 +68,11 @@ impl <T: GridSize> PatternPuzzlesIterator<T> {
 
     /// Find the clues are are valid in the given position, from the current puzzle state.
     fn valid_clues(starting_grid: &Grid<T>, puzzle: &Puzzle, cell: usize) -> Vec<usize> {
-        let mut valid = vec![true; 10]; valid[0] = false;
-        for neighbour in starting_grid.neighbours(cell).iter() {
-            valid[puzzle[neighbour]] = false;
-        }
-        (1..T::size() + 1).filter(|&c| valid[c]).collect()
+        (1..T::size() + 1).filter(|&c|
+            !starting_grid.neighbours(cell, c).iter().any(|p|
+                puzzle[p.cell] == p.candidate
+            )
+        ).collect()
     }
 }
 
@@ -123,7 +122,7 @@ impl <T: GridSize> Iterator for PatternPuzzlesIterator<T> {
                         puzzle[clue2] = c2;
                         
                         // Check if the puzzle has a unique solution
-                        let canonical_puzzle = minlex::<T>(&puzzle);
+                        let canonical_puzzle = puzzle.clone();
                         if !self.seen_puzzles.contains(&canonical_puzzle) && self.brute_force_solver.has_unique_solution(&canonical_puzzle) {
                             self.seen_puzzles.insert(canonical_puzzle.clone());
                             next_puzzles.push(canonical_puzzle);

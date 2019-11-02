@@ -18,7 +18,7 @@ struct ConstantData {
     mask_for_digit: Vec<DigitMask>,
     digits_in_mask: Vec<usize>,
     possible_guesses_for_mask: Vec<Vec<DigitMask>>,
-    neighbours_for_cell: Vec<Vec<Cell>>,
+    neighbours_for_placement: Vec<Vec<Vec<Placement>>>,
 }
 
 #[derive(Clone)]
@@ -83,7 +83,7 @@ impl BruteForceSolver {
             mask_for_digit: Self::get_mask_for_digit_from_grid(grid),
             digits_in_mask: Self::get_digits_in_mask_from_grid(grid),
             possible_guesses_for_mask: Self::get_possible_guesses_for_mask_from_grid(grid),
-            neighbours_for_cell: Self::get_neighbours_for_cell_from_grid(grid),
+            neighbours_for_placement: Self::get_neighbours_for_placement_from_grid(grid),
         };
 
         BruteForceSolver {
@@ -158,14 +158,14 @@ impl BruteForceSolver {
         while !self.placement_queue.is_empty() {
             let placement = self.placement_queue.pop().unwrap();
             self.place(placement);
-            for neighbour_idx in 0..self.constants.neighbours_for_cell[placement.cell].len() {
-                let neighbour = self.constants.neighbours_for_cell[placement.cell][neighbour_idx];
-                if self.board.cells[neighbour] & placement.mask != 0 {
-                    self.board.cells[neighbour] ^= placement.mask;
-                    let neighbour_mask = self.board.cells[neighbour];
-                    let remaining = self.constants.digits_in_mask[neighbour_mask];
-                    if remaining == 1 { self.enqueue_placement(neighbour, neighbour_mask); }
-                    else if remaining == 0 { self.invalid = true; return; }
+            for neighbour_idx in 0..self.constants.neighbours_for_placement[placement.cell][placement.mask.trailing_zeros() as usize].len() {
+                let neighbour = self.constants.neighbours_for_placement[placement.cell][placement.mask.trailing_zeros() as usize][neighbour_idx];
+                if self.board.cells[neighbour.cell] & neighbour.mask != 0 {
+                    self.board.cells[neighbour.cell] ^= neighbour.mask;
+                    let remaining_neighbour_mask = self.board.cells[neighbour.cell];
+                    let remaining_digits = self.constants.digits_in_mask[remaining_neighbour_mask];
+                    if remaining_digits == 1 { self.enqueue_placement(neighbour.cell, remaining_neighbour_mask); }
+                    else if remaining_digits == 0 { self.invalid = true; return; }
                 }
             }
         }
@@ -319,8 +319,16 @@ impl BruteForceSolver {
         (0..(1 << T::size())).map(|mask| (0..T::size()).filter(|v| mask & (1 << v) != 0).map(|v| mask_for_digit[v + 1]).collect()).collect()
     }
 
-    fn get_neighbours_for_cell_from_grid<T: GridSize>(grid: &Grid<T>) -> Vec<Vec<Cell>> {
-        (0..T::size() * T::size()).map(|cell| grid.neighbours(cell).iter().collect()).collect()
+    fn get_neighbours_for_placement_from_grid<T: GridSize>(grid: &Grid<T>) -> Vec<Vec<Vec<Placement>>> {
+        let mut neighbours = vec![vec![Vec::new(); T::size()]; T::size() * T::size()];
+        for cell in 0..T::size() * T::size() {
+            for value in 1..T::size() + 1 {
+                neighbours[cell][value - 1].extend(
+                    grid.neighbours(cell, value).iter().map(|p| Placement { cell: p.cell, mask: 1 << (p.candidate - 1) })
+                );
+            }
+        }
+        neighbours
     }
 
 }

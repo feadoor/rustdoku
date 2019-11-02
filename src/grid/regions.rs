@@ -1,6 +1,7 @@
 //! Some utility functions for working with regions of a Sudoku grid.
 
-use grid::{CellIdx, Grid, RowOrColumn};
+use grid::{Candidate, CellIdx, Grid, RowOrColumn};
+use grid::placementset::PlacementSet;
 use grid::RowOrColumn::*;
 use grid::cellset::CellSet;
 use grid::fixed_size::GridSize;
@@ -67,8 +68,8 @@ impl<'a, T: GridSize> Grid<T> {
     }
 
     /// The neighbours for a particular cell
-    pub fn neighbours(&'a self, cell: CellIdx) -> &'a CellSet<T> {
-        &self.neighbours[cell]
+    pub fn neighbours(&'a self, cell: CellIdx, candidate: Candidate) -> &'a PlacementSet<T> {
+        &self.neighbours[cell][candidate - 1]
     }
 
     /// Return the row which contains all of the given cells
@@ -114,10 +115,5 @@ impl<'a, T: GridSize> Grid<T> {
             .map(|region| region & cells)
             .filter(|intersection| !intersection.is_empty())
             .collect()
-    }
-
-    /// Get the common neighbours of all of the given cells
-    pub fn common_neighbours(&self, cells: &CellSet<T>) -> CellSet<T> {
-        CellSet::intersection(&cells.map(|cell| self.neighbours(cell)))
     }
 }

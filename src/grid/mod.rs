@@ -4,6 +4,7 @@ pub mod candidateset;
 pub mod cell;
 pub mod cellset;
 mod fixed_size;
+pub mod placementset;
 mod regions;
 pub mod variants;
 
@@ -11,6 +12,7 @@ use self::candidateset::CandidateSet;
 use self::cell::Cell;
 use self::cellset::CellSet;
 pub use self::fixed_size::GridSize;
+use self::placementset::PlacementSet;
 
 use strategies::Deduction;
 use strategies::Deduction::*;
@@ -49,8 +51,8 @@ pub struct Grid<T: GridSize> {
     /// All regions (including rows and columns) of the grid
     all_regions: Vec<CellSet<T>>,
 
-    /// The neighbours for each cell of the grid
-    neighbours: Vec<CellSet<T>>,
+    /// The neighbours for each possible placement within the grid
+    neighbours: Vec<Vec<PlacementSet<T>>>,
 }
 
 impl <T: GridSize> fmt::Display for Grid<T> {
@@ -76,7 +78,7 @@ impl <T: GridSize> fmt::Display for Grid<T> {
 impl<T: GridSize> Grid<T> {
 
     /// Create a new, empty `Grid` with the given regions and additional (non-regional) neighbours
-    pub fn empty(regions: &[CellSet<T>], additional_neighbours: &[CellSet<T>]) -> Grid<T> {
+    pub fn empty(regions: &[CellSet<T>], additional_neighbours: &[Vec<PlacementSet<T>>]) -> Grid<T> {
 
         let rows = Grid::create_rows();
         let columns = Grid::create_columns();
@@ -103,8 +105,8 @@ impl<T: GridSize> Grid<T> {
     /// Place a value in the given cell, propagating eliminations though the grid
     pub fn place_value(&mut self, cell: CellIdx, val: Candidate) {
         self.cells[cell].set_value(val);
-        for neighbour in self.neighbours(cell).iter() {
-            self.eliminate_value(neighbour, val);
+        for placement in self.neighbours(cell, val).iter() {
+            self.eliminate_value(placement.cell, placement.candidate);
         }
     }
 
@@ -237,18 +239,24 @@ impl<T: GridSize> Grid<T> {
     }
 
     /// Determine the neighbours for each cell of the `Grid` using the given regions
-    fn create_neighbours(all_regions: &[CellSet<T>], additional_neighbours: &[CellSet<T>]) -> Vec<CellSet<T>> {
+    fn create_neighbours(all_regions: &[CellSet<T>], additional_neighbours: &[Vec<PlacementSet<T>>]) -> Vec<Vec<PlacementSet<T>>> {
 
         let mut neighbours = additional_neighbours.to_vec();
 
         for region in all_regions {
             for cell in region.iter() {
-                neighbours[cell] |= region;
+                for value in 0..T::size() {
+                    neighbours[cell][value] |= PlacementSet::from_placements(
+                        region.map(|c| placementset::Placement { cell: c, candidate: value + 1 })
+                    );
+                }
             }
         }
 
         for cell in 0..T::size() * T::size() {
-            neighbours[cell].remove_cell(cell);
+            for value in 0..T::size() {
+                neighbours[cell][value].remove_placement(placementset::Placement { cell: cell, candidate: value + 1 });
+            }
         }
 
         neighbours
