@@ -44,8 +44,8 @@ pub fn get_deductions<T: GridSize>(_grid: &Grid<T>, box_line: &Step<T>) -> Vec<D
 pub fn get_description<T: GridSize>(grid: &Grid<T>, box_line: &Step<T>) -> String {
     match box_line {
         Step::BoxLine { region, value, .. } => format!(
-            "Box-line interaction - the {}s in {} eliminate further {}s from common neighbours",
-            value, grid.region_name(region), *value,
+            "Box-line interaction - the {}s in {} eliminate common neighbours",
+            value, grid.region_name(region),
         ),
         _ => unreachable!(),
     }
