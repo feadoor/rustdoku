@@ -68,39 +68,43 @@ pub fn empty_nonconsecutive() -> Grid<Grid9> {
     for cell in 0..81 {
 
         if cell % 9 != 8 {
-            additional_neighbours[cell][0].add_placement(Placement { cell: cell + 1, candidate: 2 });
-            for candidate in 2..9 {
-                additional_neighbours[cell][candidate - 1].add_placement(Placement { cell: cell + 1, candidate: candidate + 1 });
-                additional_neighbours[cell][candidate - 1].add_placement(Placement { cell: cell + 1, candidate: candidate - 1 });
+            for value in 1..10 {
+                for other in 1..10 {
+                    if value == other + 1 || value == other - 1 {
+                        additional_neighbours[cell][value - 1].add_placement(Placement { cell: cell + 1, candidate: other });
+                    }
+                }
             }
-            additional_neighbours[cell][8].add_placement(Placement { cell: cell + 1, candidate: 8 });
         }
 
         if cell % 9 != 0 {
-            additional_neighbours[cell][0].add_placement(Placement { cell: cell - 1, candidate: 2 });
-            for candidate in 2..9 {
-                additional_neighbours[cell][candidate - 1].add_placement(Placement { cell: cell - 1, candidate: candidate + 1 });
-                additional_neighbours[cell][candidate - 1].add_placement(Placement { cell: cell - 1, candidate: candidate - 1 });
+            for value in 1..10 {
+                for other in 1..10 {
+                    if value == other + 1 || value == other - 1 {
+                        additional_neighbours[cell][value - 1].add_placement(Placement { cell: cell - 1, candidate: other });
+                    }
+                }
             }
-            additional_neighbours[cell][8].add_placement(Placement { cell: cell - 1, candidate: 8 });
         }
 
         if cell / 9 != 0 {
-            additional_neighbours[cell][0].add_placement(Placement { cell: cell - 9, candidate: 2 });
-            for candidate in 2..9 {
-                additional_neighbours[cell][candidate - 1].add_placement(Placement { cell: cell - 9, candidate: candidate + 1 });
-                additional_neighbours[cell][candidate - 1].add_placement(Placement { cell: cell - 9, candidate: candidate - 1 });
+            for value in 1..10 {
+                for other in 1..10 {
+                    if value == other + 1 || value == other - 1 {
+                        additional_neighbours[cell][value - 1].add_placement(Placement { cell: cell - 9, candidate: other });
+                    }
+                }
             }
-            additional_neighbours[cell][8].add_placement(Placement { cell: cell - 9, candidate: 8 });
         }
 
         if cell / 9 != 8 {
-            additional_neighbours[cell][0].add_placement(Placement { cell: cell + 9, candidate: 2 });
-            for candidate in 2..9 {
-                additional_neighbours[cell][candidate - 1].add_placement(Placement { cell: cell + 9, candidate: candidate + 1 });
-                additional_neighbours[cell][candidate - 1].add_placement(Placement { cell: cell + 9, candidate: candidate - 1 });
+            for value in 1..10 {
+                for other in 1..10 {
+                    if value == other + 1 || value == other - 1 {
+                        additional_neighbours[cell][value - 1].add_placement(Placement { cell: cell + 9, candidate: other });
+                    }
+                }
             }
-            additional_neighbours[cell][8].add_placement(Placement { cell: cell + 9, candidate: 8 });
         }
     }
 
@@ -113,6 +117,70 @@ pub fn nonconsecutive_from_string(input: String) -> Result<Grid<Grid9>, GridPars
 
 pub fn nonconsecutive_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
     grid_from_empty_grid_and_clues(&empty_nonconsecutive(), clues)
+}
+
+pub fn empty_diagonal_nonconsecutive() -> Grid<Grid9> {
+
+    let grid_regions: Vec<CellSet<Grid9>> = (0..9)
+            .map(|idx| 27 * (idx / 3) + 3 * (idx % 3))
+            .map(|idx| vec![idx, idx + 1, idx + 2, idx + 9, idx + 10, idx + 11, idx + 18, idx + 19, idx + 20])
+            .map(|cells| CellSet::from_cells(cells))
+            .collect();
+
+    let mut additional_neighbours = vec![vec![PlacementSet::empty(); 9]; 81];
+
+    for cell in 0..81 {
+
+        if cell % 9 != 8 && cell / 9 != 0 {
+            for value in 1..10 {
+                for other in 1..10 {
+                    if value == other + 1 || value == other - 1 {
+                        additional_neighbours[cell][value - 1].add_placement(Placement { cell: cell - 8, candidate: other });
+                    }
+                }
+            }
+        }
+
+        if cell % 9 != 8 && cell / 9 != 8 {
+            for value in 1..10 {
+                for other in 1..10 {
+                    if value == other + 1 || value == other - 1 {
+                        additional_neighbours[cell][value - 1].add_placement(Placement { cell: cell + 10, candidate: other });
+                    }
+                }
+            }
+        }
+
+        if cell % 9 != 0 && cell / 9 != 0 {
+            for value in 1..10 {
+                for other in 1..10 {
+                    if value == other + 1 || value == other - 1 {
+                        additional_neighbours[cell][value - 1].add_placement(Placement { cell: cell - 10, candidate: other });
+                    }
+                }
+            }
+        }
+
+        if cell % 9 != 0 && cell / 9 != 8 {
+            for value in 1..10 {
+                for other in 1..10 {
+                    if value == other + 1 || value == other - 1 {
+                        additional_neighbours[cell][value - 1].add_placement(Placement { cell: cell + 8, candidate: other });
+                    }
+                }
+            }
+        }
+    }
+
+    Grid::empty(&grid_regions, &additional_neighbours)
+}
+
+pub fn diagonal_nonconsecutive_from_string(input: String) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_string(&empty_diagonal_nonconsecutive(), input)
+}
+
+pub fn diagonal_nonconsecutive_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_clues(&empty_diagonal_nonconsecutive(), clues)
 }
 
 // Less-than Sudoku
