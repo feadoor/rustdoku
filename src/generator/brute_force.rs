@@ -19,6 +19,7 @@ struct ConstantData {
     digits_in_mask: Vec<usize>,
     possible_guesses_for_mask: Vec<Vec<DigitMask>>,
     neighbours_for_cell: Vec<Vec<Cell>>,
+    start_state: BoardState,
 }
 
 #[derive(Clone)]
@@ -30,7 +31,8 @@ struct BoardState {
 }
 
 impl BoardState {
-    pub fn empty_for_grid<T: GridSize>(grid: &Grid<T>) -> BoardState {
+
+    pub fn for_empty_grid<T: GridSize>(grid: &Grid<T>) -> BoardState {
         let (num_digits, num_cells) = (T::size(), T::size() * T::size());
         BoardState {
             cells: vec![(1 << num_digits) - 1; num_cells],
@@ -38,6 +40,27 @@ impl BoardState {
             solved_in_house: vec![0; grid.all_regions().len()],
             solution: vec![0; num_cells],
         }
+    }
+
+    pub fn for_starting_grid<T: GridSize>(grid: &Grid<T>) -> BoardState {
+        let num_cells = T::size() * T::size();
+        BoardState {
+            cells: (0..num_cells).map(|cell| Self::maskify(grid, cell)).collect(),
+            cells_remaining: num_cells,
+            solved_in_house: vec![0; grid.all_regions().len()],
+            solution: vec![0; num_cells],
+        }
+    }
+
+    fn maskify<T: GridSize>(grid: &Grid<T>, cell: usize) -> usize {
+        let mut mask = 0;
+        for candidate in grid.candidates(cell).iter() {
+            mask |= 1 << (candidate - 1);
+        }
+        if let Some(value) = grid.value(cell) {
+            mask |= 1 << (value - 1);
+        }
+        mask
     }
 }
 
@@ -84,13 +107,46 @@ impl BruteForceSolver {
             digits_in_mask: Self::get_digits_in_mask_from_grid(grid),
             possible_guesses_for_mask: Self::get_possible_guesses_for_mask_from_grid(grid),
             neighbours_for_cell: Self::get_neighbours_for_cell_from_grid(grid),
+            start_state: BoardState::for_empty_grid(grid),
         };
+
+        let start_state = constants.start_state.clone();
 
         BruteForceSolver {
             constants: constants,
             invalid: false,
             finished: false,
-            board: BoardState::empty_for_grid(grid),
+            board: start_state,
+            board_stack: Vec::new(),
+            solution_count: 0,
+            placement_queue: Vec::new(),
+            guess_stack: Vec::new(),
+        }
+    }
+
+    pub fn for_starting_grid<T: GridSize>(grid: &Grid<T>) -> BruteForceSolver {
+
+        let constants = ConstantData {
+            num_digits: Self::get_num_digits_from_grid(grid),
+            num_houses: Self::get_num_houses_from_grid(grid),
+            num_cells: Self::get_num_cells_from_grid(grid),
+            all_digits_mask: Self::get_all_digits_mask_from_grid(grid),
+            cells_for_house: Self::get_cells_for_house_from_grid(grid),
+            houses_for_cell: Self::get_houses_for_cell_from_grid(grid),
+            mask_for_digit: Self::get_mask_for_digit_from_grid(grid),
+            digits_in_mask: Self::get_digits_in_mask_from_grid(grid),
+            possible_guesses_for_mask: Self::get_possible_guesses_for_mask_from_grid(grid),
+            neighbours_for_cell: Self::get_neighbours_for_cell_from_grid(grid),
+            start_state: BoardState::for_starting_grid(grid),
+        };
+
+        let start_state = constants.start_state.clone();
+
+        BruteForceSolver {
+            constants: constants,
+            invalid: false,
+            finished: false,
+            board: start_state,
             board_stack: Vec::new(),
             solution_count: 0,
             placement_queue: Vec::new(),
@@ -116,16 +172,21 @@ impl BruteForceSolver {
     fn reset(&mut self) {
         self.invalid = false;
         self.finished = false;
-        self.board = BoardState {
-            cells: vec![self.constants.all_digits_mask; self.constants.num_cells],
-            cells_remaining: self.constants.num_cells,
-            solved_in_house: vec![0; self.constants.num_houses],
-            solution: vec![0; self.constants.num_cells],
-        };
+        self.board = self.constants.start_state.clone();
         self.board_stack.clear();
         self.solution_count = 0;
         self.placement_queue.clear();
         self.guess_stack.clear();
+
+        let mut placements = Vec::new();
+        for (cell, &mask) in self.board.cells.iter().enumerate() {
+            let remaining = self.constants.digits_in_mask[mask];
+            if remaining == 1 { placements.push((cell, mask)); }
+            else if remaining == 0 { self.invalid = true; }
+        }
+        for (cell, mask) in placements {
+            self.enqueue_placement(cell, mask);
+        }
     }
 
     fn prepare_with_clues(&mut self, clues: &[usize]) {
@@ -140,7 +201,7 @@ impl BruteForceSolver {
     fn run(&mut self, clues: &[usize], max_solutions: usize) {
         self.prepare_with_clues(clues);
         while !self.finished {
-            while !self.placement_queue.is_empty() { self.process_queue(); }
+            while !self.placement_queue.is_empty() && !self.invalid { self.process_queue(); }
             if self.board.cells_remaining > 0 && !self.invalid {
                 self.check_hidden_singles();
                 if self.placement_queue.is_empty() { self.guess(); }
@@ -155,7 +216,7 @@ impl BruteForceSolver {
     }
 
     fn process_queue(&mut self) {
-        while !self.placement_queue.is_empty() {
+        while !self.placement_queue.is_empty() && !self.invalid {
             let placement = self.placement_queue.pop().unwrap();
             self.place(placement);
             for neighbour_idx in 0..self.constants.neighbours_for_cell[placement.cell].len() {

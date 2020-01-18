@@ -139,6 +139,32 @@ pub fn antidiagonal_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParse
     grid_from_empty_grid_and_clues(&empty_antidiagonal(), clues)
 }
 
+// Bent Diagonal Sudoku
+
+pub fn empty_bent_diagonal() -> Grid<Grid9> {
+
+    let mut grid_regions: Vec<CellSet<Grid9>> = (0..9)
+            .map(|idx| 27 * (idx / 3) + 3 * (idx % 3))
+            .map(|idx| vec![idx, idx + 1, idx + 2, idx + 9, idx + 10, idx + 11, idx + 18, idx + 19, idx + 20])
+            .map(|cells| CellSet::from_cells(cells))
+            .collect();
+
+    grid_regions.push(CellSet::from_cells(vec![0, 10, 20, 30, 40, 32, 24, 16, 8]));
+    grid_regions.push(CellSet::from_cells(vec![0, 10, 20, 30, 40, 48, 56, 64, 72]));
+    grid_regions.push(CellSet::from_cells(vec![8, 16, 24, 32, 40, 50, 60, 70, 80]));
+    grid_regions.push(CellSet::from_cells(vec![72, 64, 56, 48, 40, 50, 60, 70, 80]));
+
+    Grid::empty(&grid_regions, &vec![CellSet::empty(); 81])
+}
+
+pub fn bent_diagonal_from_string(input: String) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_string(&empty_bent_diagonal(), input)
+}
+
+pub fn bent_diagonal_from_clues(clues: &[usize]) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_clues(&empty_bent_diagonal(), clues)
+}
+
 // Windoku
 
 pub fn empty_windoku() -> Grid<Grid9> {

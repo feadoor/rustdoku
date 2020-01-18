@@ -20,6 +20,9 @@ pub struct PatternPuzzlesIterator<T: GridSize> {
     /// The starting grid for which puzzles are being generated.
     starting_grid: Grid<T>,
 
+    /// Whether to canonicalize the generated puzzles.
+    canonicalize: bool,
+
     /// A brute-force solver configured to work with this grid
     brute_force_solver: BruteForceSolver,
 
@@ -38,13 +41,32 @@ pub struct PatternPuzzlesIterator<T: GridSize> {
 
 impl <T: GridSize> PatternPuzzlesIterator<T> {
 
-    /// An iterator over puzzles with the given clue pattern using a random seed.
+    /// An iterator over puzzles on the given empty grid using a random seed.
+    pub fn for_empty_grid_and_pattern(starting_grid: Grid<T>, pattern: Pattern) -> PatternPuzzlesIterator<T> {
+        loop {
+            if let Some(puzzle) = PatternPuzzlesIterator::random_seed(&starting_grid, &pattern) {
+                let brute_force_solver = BruteForceSolver::for_empty_grid(&starting_grid);
+                return PatternPuzzlesIterator {
+                    starting_grid: starting_grid,
+                    canonicalize: true,
+                    brute_force_solver: brute_force_solver,
+                    seed_stack: vec![puzzle],
+                    iteration_queue: vec![],
+                    seen_puzzles: HashSet::new(),
+                    pattern: pattern,
+                }
+            }
+        }
+    }
+
+    /// An iterator over puzzles with the given starting grid using a random seed.
     pub fn for_starting_grid_and_pattern(starting_grid: Grid<T>, pattern: Pattern) -> PatternPuzzlesIterator<T> {
         loop {
             if let Some(puzzle) = PatternPuzzlesIterator::random_seed(&starting_grid, &pattern) {
                 let brute_force_solver = BruteForceSolver::for_empty_grid(&starting_grid);
                 return PatternPuzzlesIterator {
                     starting_grid: starting_grid,
+                    canonicalize: false,
                     brute_force_solver: brute_force_solver,
                     seed_stack: vec![puzzle],
                     iteration_queue: vec![],
@@ -69,7 +91,13 @@ impl <T: GridSize> PatternPuzzlesIterator<T> {
 
     /// Find the clues are are valid in the given position, from the current puzzle state.
     fn valid_clues(starting_grid: &Grid<T>, puzzle: &Puzzle, cell: usize) -> Vec<usize> {
-        let mut valid = vec![true; 10]; valid[0] = false;
+        let mut valid = vec![false; 10];
+        for candidate in starting_grid.candidates(cell).iter() {
+            valid[candidate] = true;
+        }
+        if let Some(value) = starting_grid.value(cell) {
+            valid[value] = true;
+        }
         for neighbour in starting_grid.neighbours(cell).iter() {
             valid[puzzle[neighbour]] = false;
         }
@@ -123,7 +151,7 @@ impl <T: GridSize> Iterator for PatternPuzzlesIterator<T> {
                         puzzle[clue2] = c2;
                         
                         // Check if the puzzle has a unique solution
-                        let canonical_puzzle = minlex::<T>(&puzzle);
+                        let canonical_puzzle = if self.canonicalize { minlex::<T>(&puzzle) } else { puzzle.clone() };
                         if !self.seen_puzzles.contains(&canonical_puzzle) && self.brute_force_solver.has_unique_solution(&canonical_puzzle) {
                             self.seen_puzzles.insert(canonical_puzzle.clone());
                             next_puzzles.push(canonical_puzzle);
