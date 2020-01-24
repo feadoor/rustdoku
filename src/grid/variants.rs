@@ -73,6 +73,25 @@ pub fn six_by_six_from_clues(clues: &[usize]) -> Result<Grid<Grid6>, GridParseEr
     grid_from_empty_grid_and_clues(&empty_six_by_six(), clues)
 }
 
+// Irregular Sudoku
+
+pub fn empty_irregular(regions: &[Vec<usize>]) -> Grid<Grid9> {
+
+    let grid_regions: Vec<CellSet<Grid9>> = regions.iter()
+        .map(|cells| CellSet::from_cells(cells.clone()))
+        .collect();
+
+    Grid::empty(&grid_regions, &vec![CellSet::empty(); 81])
+}
+
+pub fn irregular_from_string(input: String, regions: &[Vec<usize>]) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_string(&empty_irregular(regions), input)
+}
+
+pub fn irregular_from_clues(clues: &[usize], regions: &[Vec<usize>]) -> Result<Grid<Grid9>, GridParseError> {
+    grid_from_empty_grid_and_clues(&empty_irregular(regions), clues)
+}
+
 // Diagonal Sudoku
 
 pub fn empty_diagonal() -> Grid<Grid9> {
