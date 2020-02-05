@@ -88,7 +88,7 @@ fn get_fish_name<'a>(size: usize) -> &'a str {
         2 => "X-Wing",
         3 => "Swordfish",
         4 => "Jellyfish",
-        _ => unreachable!(),
+        _ => "Fish",
     }
 }
 

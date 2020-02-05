@@ -169,6 +169,11 @@ impl BruteForceSolver {
         self.solution_count
     }
 
+    pub fn random_solution(&mut self, clues: &[usize]) -> Option<Vec<usize>> {
+        self.run(clues, 1);
+        if self.solution_count > 0 { Some(self.board.solution.iter().map(|x| x.trailing_zeros() as usize + 1).collect()) } else { None }
+    }
+
     fn reset(&mut self) {
         self.invalid = false;
         self.finished = false;

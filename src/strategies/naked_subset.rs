@@ -58,7 +58,7 @@ fn get_subset_name<'a>(size: usize) -> &'a str {
         2 => "Pair",
         3 => "Triple",
         4 => "Quad",
-        _ => unreachable!(),
+        _ => "Subset",
     }
 }
 
