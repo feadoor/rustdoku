@@ -241,6 +241,12 @@ impl<T: GridSize> Grid<T> {
 
         let mut neighbours = additional_neighbours.to_vec();
 
+        for cell in 0..T::size() * T::size() {
+            for neighbour in neighbours[cell].iter() {
+                neighbours[neighbour].add_cell(cell);
+            }
+        }
+
         for region in all_regions {
             for cell in region.iter() {
                 neighbours[cell] |= region;
