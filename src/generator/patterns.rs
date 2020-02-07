@@ -63,7 +63,7 @@ impl <T: GridSize> PatternPuzzlesIterator<T> {
     pub fn for_starting_grid_and_pattern(starting_grid: Grid<T>, pattern: Pattern) -> PatternPuzzlesIterator<T> {
         loop {
             if let Some(puzzle) = PatternPuzzlesIterator::random_seed(&starting_grid, &pattern) {
-                let brute_force_solver = BruteForceSolver::for_empty_grid(&starting_grid);
+                let brute_force_solver = BruteForceSolver::for_starting_grid(&starting_grid);
                 return PatternPuzzlesIterator {
                     starting_grid: starting_grid,
                     canonicalize: false,
