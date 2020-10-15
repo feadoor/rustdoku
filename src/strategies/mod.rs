@@ -49,13 +49,13 @@ pub enum Step<T: GridSize> {
     XYZWing { pivot: CellIdx, pincer1: CellIdx, pincer2: CellIdx, value: usize, },
     WWing { pincer1: CellIdx, pincer2: CellIdx, region: CellSet<T>, covered_value: usize, eliminated_value: usize, },
     WXYZWing { cells: CellSet<T>, value: usize },
-    Msls { base: Vec<CellSet<T>>, digits: Vec<usize>, single_cells: CellSet<T>, cover: Vec<(CellSet<T>, usize)> },
     XChain { chain: Aic<T> },
     XYChain { chain: XYChain },
     Aic { chain: Aic<T> },
     AlsAic { chain: Aic<T> },
     ForcingChain { chain: ForcingChain<T> },
     AlsForcingChain { chain: ForcingChain<T> },
+    Msls { base: Vec<CellSet<T>>, digits: CandidateSet<T>, single_cells: CellSet<T>, cover: Vec<(CellSet<T>, usize)> },
 }
 
 /// The different strategies available to the solver.
@@ -73,13 +73,13 @@ pub enum Strategy {
     XYZWing,
     WWing,
     WXYZWing,
-    Msls,
     XChain,
     XYChain,
     Aic,
     AlsAic,
     ForcingChain,
     AlsForcingChain,
+    Msls,
 }
 
 pub const ALL_STRATEGIES: &'static [Strategy] = &[
@@ -105,11 +105,11 @@ pub const ALL_STRATEGIES: &'static [Strategy] = &[
     Strategy::XYChain,
     Strategy::WWing,
     Strategy::WXYZWing,
-    Strategy::Msls,
     Strategy::Aic,
     Strategy::AlsAic,
     Strategy::ForcingChain,
     Strategy::AlsForcingChain,
+    Strategy::Msls,
 ];
 
 impl Strategy {
@@ -129,13 +129,13 @@ impl Strategy {
             Strategy::XYZWing => Box::new(xyz_wing::find(&grid)),
             Strategy::WWing => Box::new(w_wing::find(&grid)),
             Strategy::WXYZWing => Box::new(wxyz_wing::find(&grid)),
-            Strategy::Msls => Box::new(msls::find(&grid)),
             Strategy::XChain => Box::new(chaining::find_xchains(&grid)),
             Strategy::XYChain => Box::new(xy_chain::find(&grid)),
             Strategy::Aic => Box::new(chaining::find_aics(&grid)),
             Strategy::AlsAic => Box::new(chaining::find_als_aics(&grid)),
             Strategy::ForcingChain => Box::new(chaining::find_forcing_chains(&grid)),
             Strategy::AlsForcingChain => Box::new(chaining::find_als_forcing_chains(&grid)),
+            Strategy::Msls => Box::new(msls::find(&grid)),
         }
     }
 }
@@ -159,13 +159,13 @@ impl <T: GridSize> Step<T> {
             ref xyz_wing @ Step::XYZWing { .. } => xyz_wing::get_deductions(grid, xyz_wing),
             ref w_wing @ Step::WWing { .. } => w_wing::get_deductions(grid, w_wing),
             ref wxyz_wing @ Step::WXYZWing { .. } => wxyz_wing::get_deductions(grid, wxyz_wing),
-            ref msls @ Step::Msls { .. } => msls::get_deductions(grid, msls),
             Step::XChain { chain } => chaining::get_aic_deductions(grid, chain),
             ref xy_chain @ Step::XYChain { .. } => xy_chain::get_deductions(grid, xy_chain),
             Step::Aic { chain } => chaining::get_aic_deductions(grid, chain),
             Step::AlsAic { chain } => chaining::get_aic_deductions(grid, chain),
             Step::ForcingChain { chain } => chaining::get_forcing_chain_deductions(grid, chain),
             Step::AlsForcingChain { chain } => chaining::get_forcing_chain_deductions(grid, chain),
+            ref msls @ Step::Msls { .. } => msls::get_deductions(grid, msls),
         }
     }
 
@@ -186,13 +186,13 @@ impl <T: GridSize> Step<T> {
             ref xyz_wing @ Step::XYZWing { .. } => format!("{}", xyz_wing::get_description(grid, xyz_wing)),
             ref w_wing @ Step::WWing { .. } => format!("{}", w_wing::get_description(grid, w_wing)),
             ref wxyz_wing @ Step::WXYZWing { .. } => format!("{}", wxyz_wing::get_description(grid, wxyz_wing)),
-            ref msls @ Step::Msls { .. } => format!("{}", msls::get_description(grid, msls)),
             Step::XChain { chain } => format!("X-Chain - {}", chaining::get_aic_description(grid, chain)),
             ref xy_chain @ Step::XYChain { .. } => format!("{}", xy_chain::get_description(grid, xy_chain)),
             Step::Aic { chain } => format!("AIC - {}", chaining::get_aic_description(grid, chain)),
             Step::AlsAic { chain } => format!("ALS AIC - {}", chaining::get_aic_description(grid, chain)),
             Step::ForcingChain { chain } => format!("Forcing Chain - {}", chaining::get_forcing_chain_description(grid, chain)),
             Step::AlsForcingChain { chain } => format!("ALS Forcing Chain - {}", chaining::get_forcing_chain_description(grid, chain)),
+            ref msls @ Step::Msls { .. } => format!("{}", msls::get_description(grid, msls)),
         }
     }
 }

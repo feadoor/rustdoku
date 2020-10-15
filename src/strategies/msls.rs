@@ -36,9 +36,10 @@ fn find_msls<'a, T: GridSize>(grid: &'a Grid<T>, base_degree: usize, digit_degre
 
             // Iterate over all subsets of possible digits
             for base_digits in (1..T::size() + 1).combinations(digit_degree) {
+                let digit_set =  CandidateSet::from_candidates(base_digits);
 
                 // Count the number of times these digits need to be placed in the base rows or columns
-                let missing_count: usize = base_sets.iter().map(|rc| base_digits.iter().map(|&d| if grid.value_placed_in_region(d, rc) { 0 } else { 1 }).sum::<usize>()).sum();
+                let missing_count: usize = base_sets.iter().map(|rc| digit_set.filter(|&d| !grid.value_placed_in_region(d, rc)).len()).sum();
 
                 // Count, in the crudest possible way, the maximum number of times that the digits can actually appear
                 let mut single_cells = CellSet::empty();
@@ -47,19 +48,24 @@ fn find_msls<'a, T: GridSize>(grid: &'a Grid<T>, base_degree: usize, digit_degre
 
                 let all_covers = if base_type == Row { grid.columns() } else { grid.rows() };
                 for cover in all_covers {
+
+                    // Work out where in the intersection of the base and the cover the digits can be placed
                     let base_intersection = cover & &base_union;
-                    let digits_to_place: Vec<usize> = base_digits.iter().filter(|&&d| grid.candidate_in_region(d, &base_intersection)).map(|d| *d).collect();
-                    if digits_to_place.len() > base_degree {
-                        single_cells |= &base_intersection;
-                        placement_count += base_degree;
-                    } else if digits_to_place.len() == base_degree {
-                        single_cells |= &base_intersection;
-                        for &digit in &digits_to_place {
+                    let digits_to_place = digit_set.filter(|&d| grid.candidate_in_region(d, &base_intersection));
+                    let available_cells = base_intersection.filter(|&cell| (grid.candidates(cell) & digit_set).len() > 0);
+
+                    // Find the maximum number of distinct digits that can be placed in this base/cover intersection
+                    if digits_to_place.len() > available_cells.len() {
+                        single_cells |= &available_cells;
+                        placement_count += available_cells.len();
+                    } else if digits_to_place.len() == available_cells.len() {
+                        single_cells |= &available_cells;
+                        for digit in digits_to_place.iter() {
                             cover_sets.push((cover.clone(), digit));
                         }
-                        placement_count += base_degree;
-                    } else {
-                        for &digit in &digits_to_place {
+                        placement_count += available_cells.len();
+                    }else {
+                        for digit in digits_to_place.iter() {
                             cover_sets.push((cover.clone(), digit));
                         }
                         placement_count += digits_to_place.len();
@@ -68,11 +74,10 @@ fn find_msls<'a, T: GridSize>(grid: &'a Grid<T>, base_degree: usize, digit_degre
 
                 // If the two counts are equal, it's MSLS town!
                 if missing_count == placement_count {
-                    yield Step::Msls { base: base_sets.iter().map(|&x| x.clone()).collect(), digits: base_digits.clone(), single_cells, cover: cover_sets };
+                    yield Step::Msls { base: base_sets.iter().map(|&x| x.clone()).collect(), digits: digit_set, single_cells, cover: cover_sets };
                 }   
             }
-        }        
-
+        }
     })
 }
 
@@ -81,12 +86,11 @@ pub fn get_deductions<T: GridSize>(grid: &Grid<T>, msls: &Step<T>) -> Vec<Deduct
     match msls {
         Step::Msls { base, digits, single_cells, cover } => {
             let base_union = CellSet::union(&base);
-            let digit_set = CandidateSet::from_candidates(digits.iter().map(|x| *x));
             
             let mut deductions = Vec::new();
 
             for cell in single_cells.iter() {
-                for eliminated_digit in (grid.candidates(cell) & (!digit_set)).iter() {
+                for eliminated_digit in (grid.candidates(cell) & (!digits)).iter() {
                     deductions.push(Deduction::Elimination(cell, eliminated_digit));
                 }
             }
