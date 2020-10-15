@@ -24,7 +24,7 @@ pub type CellIdx = usize;
 pub type Candidate = usize;
 
 // A simple enum for choosing between rows and columns
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum RowOrColumn {
     Row,
     Column,
