@@ -1,6 +1,9 @@
 //! A pure-logic Sudoku solver.
 
+extern crate itertools;
 extern crate rustdoku;
+
+use itertools::Itertools;
 
 use std::io;
 use std::io::BufRead;
@@ -24,8 +27,8 @@ fn main() {
 
             println!("\nInitial grid:\n\n{}", grid);
             let solve_details = solver::solve(&mut grid, &config);
-            for step in solve_details.steps {
-                println!(" - {}", step.get_description(&grid));
+            for (step, deductions) in solve_details.steps {
+                println!(" - {} - ({})", step.get_description(&grid), deductions.iter().map(|d| d.get_description(&grid)).join(", "));
             }
             println!("\nResult: {:?}", solve_details.result);
             println!("\nFinal grid:\n\n{}", grid);

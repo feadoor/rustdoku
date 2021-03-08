@@ -24,6 +24,7 @@ use strategies::chaining::ForcingChain;
 use strategies::xy_chain::XYChain;
 
 /// The different types of deduction that can be made on a grid.
+#[derive(Clone)]
 pub enum Deduction {
     /// Indicates that the given value can be placed in the cell at the given index.
     Placement(CellIdx, usize),
@@ -31,6 +32,16 @@ pub enum Deduction {
     Elimination(CellIdx, usize),
     /// Indicates that the grid was found to be in contradiction.
     Contradiction,
+}
+
+impl Deduction {
+    pub fn get_description<T: GridSize>(&self, grid: &Grid<T>) -> String {
+        match self {
+            Deduction::Placement(cell, value) => format!("{} placed in {}", value, grid.cell_name(*cell)),
+            Deduction::Elimination(cell, value) => format!("{} eliminated from {}", value, grid.cell_name(*cell)),
+            Deduction::Contradiction => format!("Contradiction!"),
+        }
+    }
 }
 
 /// A step to be taken in the process of solving a given grid.

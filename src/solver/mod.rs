@@ -22,7 +22,7 @@ pub struct SolveDetails<T: GridSize> {
     /// The result of the solve.
     pub result: SolveResult,
     /// The path taken through the solve.
-    pub steps: Vec<Step<T>>,
+    pub steps: Vec<(Step<T>, Vec<Deduction>)>,
 }
 
 /// Solve, as far as possible, the grid, using the allowed strategies.
@@ -30,14 +30,14 @@ pub fn solve<T: GridSize>(grid: &mut Grid<T>, config: &SolveConfiguration) -> So
     let mut steps = Vec::new();
     while !grid.is_solved() {
         if let Some((step, deductions)) = find_step(grid, config) {
-            for deduction in deductions {
+            for deduction in deductions.clone() {
                 if let Contradiction = deduction {
                     return SolveDetails { result: SolveResult::Contradiction, steps };
                 } else {
                     grid.apply_deduction(deduction);
                 }
             }
-            steps.push(step);
+            steps.push((step, deductions));
         } else {
             return SolveDetails { result: SolveResult::InsufficientStrategies, steps };
         }
