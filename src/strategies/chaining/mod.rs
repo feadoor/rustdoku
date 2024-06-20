@@ -13,7 +13,7 @@ pub use self::forcing::{ForcingChain, get_forcing_chain_deductions, get_forcing_
 
 pub fn find_xchains<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         for candidate in grid.values().into_iter() {
 
@@ -31,7 +31,7 @@ pub fn find_xchains<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = 
 
 pub fn find_aics<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // Create the possible chain nodes
         let mut nodes = nodes::get_value_nodes(grid);
@@ -46,7 +46,7 @@ pub fn find_aics<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Ste
 
 pub fn find_als_aics<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // Create the possible chain nodes
         let mut nodes = nodes::get_value_nodes(grid);
@@ -62,7 +62,7 @@ pub fn find_als_aics<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item =
 
 pub fn find_forcing_chains<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // Create the possible chain nodes
         let mut nodes = nodes::get_value_nodes(grid);
@@ -77,7 +77,7 @@ pub fn find_forcing_chains<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<
 
 pub fn find_als_forcing_chains<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // Create the possible chain nodes
         let mut nodes = nodes::get_value_nodes(grid);

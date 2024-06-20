@@ -21,7 +21,7 @@ pub type XYChain = Vec<XYChainNode>;
 /// of the chain can have that candidate eliminated.
 pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // Find all nodes that need to be considered for this chain - that is, candidates in bivalue
         // cells of the grid.

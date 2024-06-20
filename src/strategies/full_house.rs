@@ -10,7 +10,7 @@ use utils::GeneratorAdapter;
 /// with the last remaining value.
 pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // Scan each region and check if it has only one empty cell.
         for region in grid.all_regions() {

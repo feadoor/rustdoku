@@ -11,7 +11,7 @@ use utils::GeneratorAdapter;
 /// common neighbours can be eliminated.
 pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // Scan each region, and for each value, check if the common neighbours allow for eliminations.
         for region in grid.all_regions() {

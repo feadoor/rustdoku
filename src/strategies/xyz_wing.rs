@@ -14,7 +14,7 @@ use utils::GeneratorAdapter;
 /// eliminated from all cells which can see the pivot and both pincers.
 pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // Iterate over tri-value cells of the grid as the pivot and look for pincer cells.
         for pivot in grid.cells_with_n_candidates(3).iter() {

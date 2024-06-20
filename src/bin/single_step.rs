@@ -41,7 +41,7 @@ fn main() {
 
             let basics = solver::solve(&mut grid, &basic_config);
             for step in basics.steps {
-                println!(" - {}", step.get_description(&grid));
+                println!(" - {}", step.0.get_description(&grid));
             }
 
             println!("\n\nAfter solving basics:\n\n{}\n\n", grid);

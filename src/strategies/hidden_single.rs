@@ -10,7 +10,7 @@ use utils::GeneratorAdapter;
 /// value can be placed in that location.
 pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // Scan each region, and check if any value has only one position.
         for region in grid.all_regions() {

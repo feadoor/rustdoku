@@ -14,7 +14,7 @@ use utils::GeneratorAdapter;
 /// other values can be eliminated from those cells.
 pub fn find_with_degree<'a, T: GridSize>(grid: &'a Grid<T>, degree: usize) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // Iterate over all regions of the grid and all tuples of values.
         for region in grid.all_regions() {

@@ -27,7 +27,7 @@ pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>>
 /// Find, if it exists, an MSLS of the given degree
 fn find_msls<'a, T: GridSize>(grid: &'a Grid<T>, base_degree: usize, digit_degree: usize, base_type: RowOrColumn) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // Iterate over all possible choices for the base rows / columns, looking for an MSLS
         let all_bases = if base_type == Row { grid.rows() } else { grid.columns() };

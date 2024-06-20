@@ -27,7 +27,7 @@ pub fn find_with_degree<'a, T: GridSize>(grid: &'a Grid<T>, degree: usize) -> im
 /// Find, if it exists, a fish of the given degree with the given value in the grid.
 fn find_fish<'a, T: GridSize>(grid: &'a Grid<T>, degree: usize, value: usize, base_type: RowOrColumn) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // Generate all possible base sets for this fish.
         let candidate_positions = grid.cells_with_candidate(value);

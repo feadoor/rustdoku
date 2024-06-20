@@ -13,7 +13,7 @@ use utils::GeneratorAdapter;
 /// both pincers.
 pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move ||{
+    GeneratorAdapter::of(#[coroutine] move ||{
 
         // Iterate over bi-value cells of the grid as the pivot and look for pairs of pincer cells.
         for pivot in grid.cells_with_n_candidates(2).iter() {

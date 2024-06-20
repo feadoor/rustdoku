@@ -17,7 +17,7 @@ use utils::GeneratorAdapter;
 /// As a consequence, all common neighbours of the two original cells cannot contain Y.
 pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // Iterate over pairs of bivalue cells with the same candidates.
         for (cell1, cell2) in bivalue_pairs(grid) {

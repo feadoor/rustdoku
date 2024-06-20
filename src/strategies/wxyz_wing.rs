@@ -15,7 +15,7 @@ use utils::GeneratorAdapter;
 /// digit inside the wing.
 pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // We are concerned only with empty cells in the grid.
         let empty_cells = grid.empty_cells();

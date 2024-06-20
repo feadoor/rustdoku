@@ -10,7 +10,7 @@ use utils::GeneratorAdapter;
 /// can be placed in the cell.
 pub fn find<'a, T: GridSize>(grid: &'a Grid<T>) -> impl Iterator<Item = Step<T>> + 'a {
 
-    GeneratorAdapter::of(move || {
+    GeneratorAdapter::of(#[coroutine] move || {
 
         // Scan each cell and check if it is a naked single.
         for cell in grid.cells().iter() {
